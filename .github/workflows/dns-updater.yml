@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'dns-updater/**'
+      - '.github/workflows/dns-updater.yml'
   workflow_dispatch:
 
 permissions:
