@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-IPV4=$(curl -s http://169.254.170.2/v2/metadata | jq -r '.Containers[0].Networks[0].IPv4Addresses[0]')
-IPV6=$(curl -s http://169.254.170.2/v2/metadata | jq -r '.Containers[0].Networks[0].IPv6Addresses[0]')
+IPV4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+IPV6=$(curl -s http://169.254.169.254/latest/meta-data/ipv6)
 
 # Update A record
 curl -s -X PUT \
