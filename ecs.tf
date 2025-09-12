@@ -70,7 +70,7 @@ resource "aws_ecs_task_definition" "mc_task" {
     },
     {
       name      = "cloudflare-dns-updater"
-      image     = "alpine:latest"
+      image     = "ghcr.io/melvyndekort/dns-updater:latest"
       essential = false
       environment = [
         { name = "CLOUDFLARE_ZONE_ID",        value = data.cloudflare_zone.zone.zone_id },

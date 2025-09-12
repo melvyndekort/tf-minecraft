@@ -1,7 +1,7 @@
 FROM alpine:3
 
-# Install curl & jq
-RUN apk add --update --no-cache curl jq
+# Install dependencies
+RUN apk add --update --no-cache curl
 
 # Copy update script
 COPY update-dns.sh /usr/local/bin/update-dns.sh
