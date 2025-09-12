@@ -17,4 +17,3 @@ curl -s -X PUT \
   -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
   -H "Content-Type: application/json" \
   --data "{\"type\":\"AAAA\",\"name\":\"${DNS_NAME}\",\"content\":\"${IPV6}\",\"ttl\":120,\"proxied\":false}"
-
