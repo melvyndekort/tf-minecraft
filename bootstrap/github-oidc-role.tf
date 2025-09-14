@@ -3,7 +3,7 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 resource "aws_iam_role" "github_actions" {
-  name = "github-actions-terraform"
+  name = "github-actions-tf-minecraft"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
