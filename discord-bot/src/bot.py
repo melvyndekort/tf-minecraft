@@ -97,6 +97,18 @@ def create_bot():
             logger.error(f"Error fetching status: {e}")
             await interaction.response.send_message(f"❌ Error fetching status: {e}")
     
+    @bot.tree.command(name="help", description="Show all available commands")
+    async def help_command(interaction: discord.Interaction):
+        logger.info(f"Help command invoked by {interaction.user.name}")
+        help_text = (
+            "🎮 **Minecraft Server Commands**\n\n"
+            "`/server-start` - Start the Minecraft server\n"
+            "`/server-stop` - Stop the Minecraft server\n"
+            "`/server-status` - Check current server status\n"
+            "`/help` - Show this help message"
+        )
+        await interaction.response.send_message(help_text)
+    
     @bot.event
     async def on_ready():
         logger.info(f"Bot logged in as {bot.user}")
