@@ -23,9 +23,10 @@ SERVICE = os.getenv("ECS_SERVICE")
 logger.info(f"Starting Discord bot for ECS cluster: {CLUSTER}, service: {SERVICE}")
 
 ecs = boto3.client("ecs")
+ec2 = boto3.client("ec2")
 
 async def get_service_status() -> dict:
-    """Return ECS service info: desired & running counts."""
+    """Return ECS service info: desired & running counts, and public IPs."""
     logger.info(f"Getting status for service {SERVICE}")
     response = ecs.describe_services(
         cluster=CLUSTER,
@@ -34,9 +35,45 @@ async def get_service_status() -> dict:
     service = response["services"][0]
     status = {
         "desired": service["desiredCount"],
-        "running": service["runningCount"]
+        "running": service["runningCount"],
+        "public_ips": [],
+        "ipv6_ips": []
     }
-    logger.info(f"Service status: desired={status['desired']}, running={status['running']}")
+    
+    # Get public IPs if tasks are running
+    if status["running"] > 0:
+        try:
+            tasks_response = ecs.list_tasks(cluster=CLUSTER, serviceName=SERVICE)
+            if tasks_response["taskArns"]:
+                task_details = ecs.describe_tasks(
+                    cluster=CLUSTER,
+                    tasks=tasks_response["taskArns"]
+                )
+                
+                for task in task_details["tasks"]:
+                    if task["lastStatus"] == "RUNNING":
+                        for attachment in task.get("attachments", []):
+                            if attachment["type"] == "ElasticNetworkInterface":
+                                for detail in attachment["details"]:
+                                    if detail["name"] == "networkInterfaceId":
+                                        eni_id = detail["value"]
+                                        eni_response = ec2.describe_network_interfaces(
+                                            NetworkInterfaceIds=[eni_id]
+                                        )
+                                        eni = eni_response["NetworkInterfaces"][0]
+                                        
+                                        # Get IPv4 public IP
+                                        public_ip = eni.get("Association", {}).get("PublicIp")
+                                        if public_ip:
+                                            status["public_ips"].append(public_ip)
+                                        
+                                        # Get IPv6 addresses
+                                        for ipv6 in eni.get("Ipv6Addresses", []):
+                                            status["ipv6_ips"].append(ipv6["Ipv6Address"])
+        except Exception as e:
+            logger.warning(f"Failed to get public IPs: {e}")
+    
+    logger.info(f"Service status: desired={status['desired']}, running={status['running']}, public_ips={status['public_ips']}, ipv6_ips={status['ipv6_ips']}")
     return status
 
 async def update_service(interaction: discord.Interaction, desired_count: int):
@@ -90,9 +127,17 @@ def create_bot():
         logger.info(f"Server status command invoked by {interaction.user.name}")
         try:
             status = await get_service_status()
-            await interaction.response.send_message(
-                f"ℹ️ Service `{SERVICE}`: desired = {status['desired']}, running = {status['running']}"
-            )
+            message = f"ℹ️ Service `{SERVICE}`: desired = {status['desired']}, running = {status['running']}"
+            
+            if status['public_ips']:
+                ips = ", ".join(status['public_ips'])
+                message += f"\n🌐 IPv4: {ips}"
+            
+            if status['ipv6_ips']:
+                ipv6s = ", ".join(status['ipv6_ips'])
+                message += f"\n🌐 IPv6: {ipv6s}"
+            
+            await interaction.response.send_message(message)
         except Exception as e:
             logger.error(f"Error fetching status: {e}")
             await interaction.response.send_message(f"❌ Error fetching status: {e}")

@@ -85,9 +85,19 @@ data "aws_iam_policy_document" "discord_bot_ecs" {
     effect = "Allow"
     actions = [
       "ecs:DescribeServices",
-      "ecs:UpdateService"
+      "ecs:UpdateService",
+      "ecs:DescribeTasks",
+      "ecs:ListTasks"
     ]
-    resources = [aws_ecs_service.minecraft.arn]
+    resources = ["*"]
+  }
+  
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeNetworkInterfaces"
+    ]
+    resources = ["*"]
   }
 }
 
