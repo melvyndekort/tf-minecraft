@@ -54,10 +54,11 @@ git clone <repository-url>
 cd tf-minecraft
 
 # Configure variables
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# Edit terraform/terraform.tfvars with your values
 
 # Deploy infrastructure
+cd terraform
 terraform init
 terraform plan
 terraform apply
@@ -100,13 +101,15 @@ tf-minecraft/
 ├── bootstrap/           # One-time GitHub Actions OIDC setup
 │   ├── github-oidc-role.tf
 │   └── providers.tf
+├── terraform/           # Main infrastructure code
+│   ├── *.tf            # Terraform configuration files
+│   └── terraform.tfvars # Configuration variables
 ├── discord-bot/          # Discord bot for server management
 │   ├── src/bot.py       # Bot implementation
 │   ├── tests/           # Unit tests
 │   ├── Dockerfile       # Container configuration
 │   └── docker-compose.yml
 ├── dns-updater/         # Dynamic DNS updater
-├── *.tf                 # Terraform infrastructure code
 └── .github/workflows/   # CI/CD pipelines
 ```
 
@@ -124,7 +127,7 @@ tf-minecraft/
 
 ### Terraform Variables
 
-Key variables in `terraform.tfvars`:
+Key variables in `terraform/terraform.tfvars`:
 
 ```hcl
 region = "us-east-1"
@@ -169,6 +172,8 @@ poetry run python src/bot.py
 ### Infrastructure Changes
 
 ```bash
+cd terraform
+
 # Plan changes
 terraform plan
 

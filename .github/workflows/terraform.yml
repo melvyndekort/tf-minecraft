@@ -5,13 +5,13 @@ on:
     branches:
       - main
     paths:
-      - '*.tf'
+      - 'terraform/*.tf'
       - '.github/workflows/terraform.yml'
   pull_request:
     branches:
       - main
     paths:
-      - '*.tf'
+      - 'terraform/*.tf'
   workflow_dispatch:
 
 permissions:
@@ -39,11 +39,14 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: terraform
 
       - name: Terraform Plan
         run: terraform plan -no-color
+        working-directory: terraform
         continue-on-error: true
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve
+        working-directory: terraform
