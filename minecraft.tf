@@ -1,10 +1,10 @@
-# --- ECS cluster ---
-resource "aws_ecs_cluster" "mc_cluster" {
-  name = "mc-ecs-cluster"
+# Minecraft ECS Service
+resource "aws_ecs_cluster" "minecraft" {
+  name = "minecraft-cluster"
 }
 
-resource "aws_ecs_task_definition" "mc_task" {
-  family                   = "mc-task"
+resource "aws_ecs_task_definition" "minecraft" {
+  family                   = "minecraft-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = tostring(var.task_cpu)
@@ -17,12 +17,12 @@ resource "aws_ecs_task_definition" "mc_task" {
   }
 
   volume {
-    name = "mc-data"
+    name = "minecraft-data"
     efs_volume_configuration {
       file_system_id     = aws_efs_file_system.minecraft.id
       transit_encryption = "ENABLED"
       authorization_config {
-        access_point_id = aws_efs_access_point.mc_ap.id
+        access_point_id = aws_efs_access_point.minecraft.id
         iam             = "DISABLED"
       }
     }
@@ -47,7 +47,7 @@ resource "aws_ecs_task_definition" "mc_task" {
       ]
       mountPoints = [
         {
-          sourceVolume  = "mc-data"
+          sourceVolume  = "minecraft-data"
           containerPath = "/data"
           readOnly      = false
         }
@@ -58,24 +58,23 @@ resource "aws_ecs_task_definition" "mc_task" {
         { name = "SERVER_NAME", value = "MelvynMC" },
         { name = "MOTD", value = "Melvyn's MC Server" },
       ]
-      linuxParameters = {}
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.minecraft.name
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "minecraft"
         }
       }
     },
     {
-      name      = "cloudflare-dns-updater"
+      name      = "dns-updater"
       image     = "ghcr.io/melvyndekort/dns-updater:latest"
       essential = false
       environment = [
         { name = "CLOUDFLARE_ZONE_ID",        value = data.cloudflare_zone.zone.zone_id },
-        { name = "CLOUDFLARE_A_RECORD_ID",    value = cloudflare_dns_record.mc_a.id },
-        { name = "CLOUDFLARE_AAAA_RECORD_ID", value = cloudflare_dns_record.mc_aaaa.id },
+        { name = "CLOUDFLARE_A_RECORD_ID",    value = cloudflare_dns_record.minecraft_a.id },
+        { name = "CLOUDFLARE_AAAA_RECORD_ID", value = cloudflare_dns_record.minecraft_aaaa.id },
         { name = "DNS_NAME",                  value = local.fqdn }
       ]
       secrets = [
@@ -87,7 +86,7 @@ resource "aws_ecs_task_definition" "mc_task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.minecraft.name
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "dns-updater"
         }
@@ -96,27 +95,60 @@ resource "aws_ecs_task_definition" "mc_task" {
   ])
 }
 
-resource "aws_ecs_service" "mc_service" {
-  name                               = "mc-service"
-  cluster                            = aws_ecs_cluster.mc_cluster.id
-  task_definition                    = aws_ecs_task_definition.mc_task.arn
+resource "aws_ecs_service" "minecraft" {
+  name                               = "minecraft-service"
+  cluster                            = aws_ecs_cluster.minecraft.id
+  task_definition                    = aws_ecs_task_definition.minecraft.arn
   desired_count                      = var.desired_count
   launch_type                        = "FARGATE"
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
-
-  enable_execute_command = true
+  enable_execute_command             = true
 
   network_configuration {
     subnets          = [data.aws_subnet.public.id]
-    security_groups  = [aws_security_group.ecs_tasks.id]
+    security_groups  = [aws_security_group.minecraft.id]
     assign_public_ip = true
   }
 
-  depends_on = [aws_efs_mount_target.target]
+  depends_on = [aws_efs_mount_target.minecraft]
 }
 
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/mc-task"
+resource "aws_cloudwatch_log_group" "minecraft" {
+  name              = "/ecs/minecraft"
   retention_in_days = 7
+}
+
+# EFS Storage
+resource "aws_efs_file_system" "minecraft" {
+  availability_zone_name = local.chosen_az
+  encrypted              = true
+  throughput_mode        = "elastic"
+  tags = {
+    Name = "minecraft-efs"
+  }
+}
+
+resource "aws_efs_access_point" "minecraft" {
+  file_system_id = aws_efs_file_system.minecraft.id
+
+  posix_user {
+    uid = 1000
+    gid = 1000
+  }
+
+  root_directory {
+    path = "/minecraft"
+    creation_info {
+      owner_gid   = 1000
+      owner_uid   = 1000
+      permissions = "0755"
+    }
+  }
+}
+
+resource "aws_efs_mount_target" "minecraft" {
+  file_system_id  = aws_efs_file_system.minecraft.id
+  subnet_id       = data.aws_subnet.public.id
+  security_groups = [aws_security_group.efs.id]
 }

@@ -1,3 +1,4 @@
+# DNS Configuration
 locals {
   fqdn = "${var.dns_record}.${var.dns_zone}"
 }
@@ -8,7 +9,7 @@ data "cloudflare_zone" "zone" {
   }
 }
 
-resource "cloudflare_dns_record" "mc_a" {
+resource "cloudflare_dns_record" "minecraft_a" {
   zone_id = data.cloudflare_zone.zone.zone_id
   name    = local.fqdn
   type    = "A"
@@ -21,7 +22,7 @@ resource "cloudflare_dns_record" "mc_a" {
   }
 }
 
-resource "cloudflare_dns_record" "mc_aaaa" {
+resource "cloudflare_dns_record" "minecraft_aaaa" {
   zone_id = data.cloudflare_zone.zone.zone_id
   name    = local.fqdn
   type    = "AAAA"
