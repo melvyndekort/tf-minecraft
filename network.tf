@@ -1,3 +1,4 @@
+# Network Data Sources
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -32,9 +33,10 @@ data "aws_subnet" "public" {
   }
 }
 
-resource "aws_security_group" "ecs_tasks" {
-  name        = "mc-ecs-tasks-sg"
-  description = "SG for Minecraft ECS tasks"
+# Security Groups
+resource "aws_security_group" "minecraft" {
+  name        = "minecraft-sg"
+  description = "Security group for Minecraft ECS tasks"
   vpc_id      = data.aws_vpc.vpc.id
 
   egress {
@@ -73,21 +75,21 @@ resource "aws_security_group" "ecs_tasks" {
   }
 
   tags = {
-    Name = "mc-ecs-tasks-sg"
+    Name = "minecraft-sg"
   }
 }
 
-resource "aws_security_group" "efs_sg" {
-  name        = "mc-efs-sg"
-  description = "SG for EFS access"
+resource "aws_security_group" "efs" {
+  name        = "minecraft-efs-sg"
+  description = "Security group for EFS access"
   vpc_id      = data.aws_vpc.vpc.id
 
   ingress {
-    description     = "AWS EFS"
+    description     = "EFS NFS"
     from_port       = 2049
     to_port         = 2049
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
+    security_groups = [aws_security_group.minecraft.id]
   }
 
   egress {
@@ -99,6 +101,6 @@ resource "aws_security_group" "efs_sg" {
   }
 
   tags = {
-    Name = "mc-efs-sg"
+    Name = "minecraft-efs-sg"
   }
 }
