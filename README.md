@@ -35,7 +35,18 @@ A scalable Minecraft server infrastructure on AWS ECS with Discord bot integrati
 - Cloudflare account with API token
 - Discord bot token
 
-### 1. Deploy Infrastructure
+### 1. Bootstrap (One-time Setup)
+
+```bash
+# Setup GitHub Actions OIDC role
+cd bootstrap
+terraform init
+terraform apply
+
+# Copy the output role ARN to GitHub repository secrets as AWS_ROLE_ARN
+```
+
+### 2. Deploy Infrastructure
 
 ```bash
 # Clone the repository
@@ -52,7 +63,7 @@ terraform plan
 terraform apply
 ```
 
-### 2. Setup Discord Bot
+### 3. Setup Discord Bot
 
 ```bash
 cd discord-bot
@@ -73,18 +84,22 @@ EOF
 docker-compose up -d
 ```
 
-### 3. Discord Commands
+### 4. Discord Commands
 
 Once the bot is running, use these slash commands in Discord:
 
 - `/server-start` - Start the Minecraft server
 - `/server-stop` - Stop the Minecraft server  
 - `/server-status` - Check current server status
+- `/help` - Show all available commands with descriptions
 
 ## 📁 Project Structure
 
 ```
 tf-minecraft/
+├── bootstrap/           # One-time GitHub Actions OIDC setup
+│   ├── github-oidc-role.tf
+│   └── providers.tf
 ├── discord-bot/          # Discord bot for server management
 │   ├── src/bot.py       # Bot implementation
 │   ├── tests/           # Unit tests
