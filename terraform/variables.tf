@@ -28,3 +28,15 @@ variable "desired_count" {
   type        = number
   default     = 0
 }
+
+variable "create_temp_ec2" {
+  description = "Create temporary EC2 instance for EFS access"
+  type        = bool
+  default     = false
+}
+
+variable "ec2_key_name" {
+  description = "EC2 Key Pair name for SSH access"
+  type        = string
+  default     = ""
+}
