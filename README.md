@@ -136,6 +136,10 @@ dns_record = "minecraft"
 task_cpu = 2048
 task_memory = 4096
 desired_count = 0  # Start with server stopped
+
+# Temporary EC2 for EFS access
+create_temp_ec2 = false
+ec2_key_name = "your-key-pair-name"
 ```
 
 ## 🔒 Security
@@ -151,6 +155,23 @@ desired_count = 0  # Start with server stopped
 - Fargate Spot pricing for cost savings
 - EFS Intelligent Tiering for storage optimization
 - CloudWatch logs with 7-day retention
+
+## 📂 EFS File Access
+
+To upload files to the EFS filesystem, enable a temporary EC2 instance:
+
+```hcl
+# In terraform/terraform.tfvars
+create_temp_ec2 = true
+ec2_key_name = "your-key-name"
+```
+
+```bash
+terraform apply
+terraform output temp_ec2_ssh_command  # Get SSH command
+```
+
+EFS is mounted at `/mnt/efs`. Set `create_temp_ec2 = false` when done.
 
 ## 🛠️ Development
 
