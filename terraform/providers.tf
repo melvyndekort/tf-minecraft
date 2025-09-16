@@ -24,5 +24,5 @@ provider "aws" {
 }
 
 provider "cloudflare" {
-  api_token = local.secrets.cloudflare.api_token
+  api_token = data.terraform_remote_state.tf_cloudflare.outputs.api_token_minecraft
 }
