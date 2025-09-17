@@ -91,7 +91,7 @@ data "aws_iam_policy_document" "discord_bot_ecs" {
     ]
     resources = ["*"]
   }
-  
+
   statement {
     effect = "Allow"
     actions = [

@@ -72,10 +72,10 @@ resource "aws_ecs_task_definition" "minecraft" {
       image     = "ghcr.io/melvyndekort/dns-updater:latest"
       essential = false
       environment = [
-        { name = "CLOUDFLARE_ZONE_ID",        value = data.cloudflare_zone.zone.zone_id },
-        { name = "CLOUDFLARE_A_RECORD_ID",    value = cloudflare_dns_record.minecraft_a.id },
+        { name = "CLOUDFLARE_ZONE_ID", value = data.cloudflare_zone.zone.zone_id },
+        { name = "CLOUDFLARE_A_RECORD_ID", value = cloudflare_dns_record.minecraft_a.id },
         { name = "CLOUDFLARE_AAAA_RECORD_ID", value = cloudflare_dns_record.minecraft_aaaa.id },
-        { name = "DNS_NAME",                  value = local.fqdn }
+        { name = "DNS_NAME", value = local.fqdn }
       ]
       secrets = [
         {
