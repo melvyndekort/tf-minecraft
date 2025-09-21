@@ -9,6 +9,14 @@ updates:
       - "melvyndekort"
     reviewers:
       - "melvyndekort"
+  - package-ecosystem: "pip"
+    directory: "/discord-bot"
+    schedule:
+      interval: "daily"
+    assignees:
+      - "melvyndekort"
+    reviewers:
+      - "melvyndekort"
   - package-ecosystem: "docker"
     directory: "/discord-bot"
     schedule:
@@ -19,6 +27,14 @@ updates:
       - "melvyndekort"
   - package-ecosystem: "docker"
     directory: "/dns-updater"
+    schedule:
+      interval: "daily"
+    assignees:
+      - "melvyndekort"
+    reviewers:
+      - "melvyndekort"
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
     schedule:
       interval: "daily"
     assignees:
