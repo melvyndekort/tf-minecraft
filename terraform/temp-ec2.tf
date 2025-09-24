@@ -6,7 +6,7 @@ module "temp_ec2" {
   subnet_id             = data.aws_subnet.public.id
   efs_id                = aws_efs_file_system.minecraft.id
   efs_security_group_id = aws_security_group.efs.id
-  ec2_key_name          = var.ec2_key_name
+  ssh_public_key        = var.ssh_public_key
 }
 
 output "temp_ec2_ip" {

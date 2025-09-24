@@ -18,7 +18,7 @@ variable "efs_security_group_id" {
   type        = string
 }
 
-variable "ec2_key_name" {
-  description = "EC2 Key Pair name"
+variable "ssh_public_key" {
+  description = "SSH public key"
   type        = string
 }

@@ -42,14 +42,19 @@ resource "aws_security_group_rule" "efs_from_temp_ec2" {
   security_group_id        = var.efs_security_group_id
 }
 
+resource "aws_key_pair" "temp_key" {
+  key_name_prefix = "temp-"
+  public_key      = var.ssh_public_key
+}
+
 resource "aws_instance" "temp_efs_access" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = "t4g.nano"
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [aws_security_group.temp_ec2.id]
-  key_name               = var.ec2_key_name
+  key_name               = aws_key_pair.temp_key.key_name
 
-  user_data = base64encode(templatefile("${path.module}/user-data.sh", {
+  user_data_base64 = base64encode(templatefile("${path.module}/user-data.sh", {
     efs_id = var.efs_id
   }))
 
