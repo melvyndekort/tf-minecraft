@@ -35,8 +35,8 @@ variable "create_temp_ec2" {
   default     = false
 }
 
-variable "ec2_key_name" {
-  description = "EC2 Key Pair name for SSH access"
+variable "ssh_public_key" {
+  description = "SSH public key"
   type        = string
   default     = ""
 }

@@ -84,14 +84,6 @@ resource "aws_security_group" "efs" {
   description = "Security group for EFS access"
   vpc_id      = data.aws_vpc.vpc.id
 
-  ingress {
-    description     = "EFS NFS"
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    security_groups = [aws_security_group.minecraft.id]
-  }
-
   egress {
     from_port        = 0
     to_port          = 0
@@ -103,4 +95,13 @@ resource "aws_security_group" "efs" {
   tags = {
     Name = "minecraft-efs-sg"
   }
+}
+
+resource "aws_security_group_rule" "efs_from_minecraft" {
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.minecraft.id
+  security_group_id        = aws_security_group.efs.id
 }
