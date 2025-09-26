@@ -4,8 +4,8 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/secrets.yaml
 
-# Discord bot
 .env
 poetry.lock
 __pycache__/
 .pytest_cache/
+.coverage
