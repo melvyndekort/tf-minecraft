@@ -9,7 +9,7 @@ updates:
       - "melvyndekort"
     reviewers:
       - "melvyndekort"
-  - package-ecosystem: "poetry"
+  - package-ecosystem: "pip"
     directory: "/discord-bot"
     schedule:
       interval: "daily"
@@ -17,7 +17,7 @@ updates:
       - "melvyndekort"
     reviewers:
       - "melvyndekort"
-  - package-ecosystem: "poetry"
+  - package-ecosystem: "pip"
     directory: "/dns-updater"
     schedule:
       interval: "daily"
