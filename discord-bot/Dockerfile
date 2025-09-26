@@ -12,7 +12,7 @@ FROM gcr.io/distroless/python3-debian12
 
 WORKDIR /app
 
-COPY --from=builder /usr/local/lib/python3.12/site-packages /app/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /app/site-packages
 COPY src/bot.py ./
 
 ENV PYTHONPATH=/app/site-packages
