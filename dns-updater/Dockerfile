@@ -1,11 +1,20 @@
-FROM alpine:3
+# Build stage
+FROM python:3.12-slim AS builder
 
-# Install dependencies
-RUN apk add --update --no-cache curl
+WORKDIR /app
 
-# Copy update script
-COPY update-dns.sh /usr/local/bin/update-dns.sh
-RUN chmod +x /usr/local/bin/update-dns.sh
+RUN pip install poetry
+COPY pyproject.toml ./
+RUN poetry config virtualenvs.create false && poetry install --only=main
 
-# Default command
-CMD ["/usr/local/bin/update-dns.sh"]
+# Runtime stage
+FROM gcr.io/distroless/python3-debian12
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /app/site-packages
+COPY src/dns_updater.py ./
+
+ENV PYTHONPATH=/app/site-packages
+
+CMD ["dns_updater.py"]

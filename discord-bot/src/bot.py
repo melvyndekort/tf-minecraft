@@ -22,6 +22,29 @@ SERVICE = os.getenv("ECS_SERVICE")
 
 logger.info(f"Starting Discord bot for ECS cluster: {CLUSTER}, service: {SERVICE}")
 
+# Setup AWS config if role ARN is provided
+aws_role_arn = os.getenv("AWS_ROLE_ARN")
+aws_region = os.getenv("AWS_DEFAULT_REGION")
+
+if aws_role_arn:
+    aws_config_dir = os.path.expanduser("~/.aws")
+    os.makedirs(aws_config_dir, exist_ok=True)
+    
+    config_content = f"""[profile botrole]
+role_arn = {aws_role_arn}
+source_profile = default
+"""
+    
+    if aws_region:
+        config_content += f"region = {aws_region}\n"
+    
+    with open(os.path.join(aws_config_dir, "config"), "w") as f:
+        f.write(config_content)
+    
+    # Set AWS_PROFILE environment variable
+    os.environ["AWS_PROFILE"] = "botrole"
+
+# Initialize AWS clients (will auto-detect region or use AWS_DEFAULT_REGION)
 ecs = boto3.client("ecs")
 ec2 = boto3.client("ec2")
 
