@@ -11,9 +11,10 @@ resource "aws_ecs_task_definition" "minecraft" {
   memory                   = tostring(var.task_memory)
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
+  
   runtime_platform {
     operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
+    cpu_architecture        = "ARM64"
   }
 
   volume {
@@ -31,7 +32,7 @@ resource "aws_ecs_task_definition" "minecraft" {
   container_definitions = jsonencode([
     {
       name      = "minecraft"
-      image     = "itzg/minecraft-server:latest"
+      image     = "itzg/minecraft-server:stable"
       essential = true
       portMappings = [
         {
@@ -42,6 +43,11 @@ resource "aws_ecs_task_definition" "minecraft" {
         {
           containerPort = 25565
           hostPort      = 25565
+          protocol      = "udp"
+        },
+        {
+          containerPort = 19132
+          hostPort      = 19132
           protocol      = "udp"
         }
       ]
@@ -55,6 +61,7 @@ resource "aws_ecs_task_definition" "minecraft" {
       environment = [
         { name = "EULA", value = "TRUE" },
         { name = "TYPE", value = "PAPER" },
+        { name = "VERSION", value = "1.21.1" },
         { name = "SERVER_NAME", value = "MelvynMC" },
         { name = "MOTD", value = "Melvyn's MC Server" },
       ]
@@ -100,10 +107,14 @@ resource "aws_ecs_service" "minecraft" {
   cluster                            = aws_ecs_cluster.minecraft.id
   task_definition                    = aws_ecs_task_definition.minecraft.arn
   desired_count                      = var.desired_count
-  launch_type                        = "FARGATE"
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
   enable_execute_command             = true
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
 
   network_configuration {
     subnets          = [data.aws_subnet.public.id]
