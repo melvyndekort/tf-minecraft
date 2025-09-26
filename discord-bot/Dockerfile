@@ -5,16 +5,14 @@ WORKDIR /app
 
 RUN pip install poetry
 COPY pyproject.toml ./
-RUN poetry config virtualenvs.create false && poetry install --only=main
+RUN poetry config virtualenvs.create false && poetry install --only=main --no-root
 
 # Runtime stage
-FROM gcr.io/distroless/python3-debian12
+FROM python:3.13-alpine
 
 WORKDIR /app
 
-COPY --from=builder /usr/local/lib/python3.13/site-packages /app/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY src/bot.py ./
 
-ENV PYTHONPATH=/app/site-packages
-
-CMD ["bot.py"]
+CMD ["python", "bot.py"]
