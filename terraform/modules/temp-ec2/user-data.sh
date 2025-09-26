@@ -6,8 +6,7 @@ yum install -y amazon-efs-utils
 mkdir -p /mnt/efs
 
 # Mount EFS
-REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
-echo "${efs_id}.efs.$REGION.amazonaws.com:/ /mnt/efs efs defaults,_netdev" >> /etc/fstab
+echo "${efs_id}.efs.${region}.amazonaws.com:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
 mount -a
 
 # Set permissions for ec2-user

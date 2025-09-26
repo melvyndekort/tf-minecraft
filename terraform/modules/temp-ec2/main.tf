@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -56,6 +58,7 @@ resource "aws_instance" "temp_efs_access" {
 
   user_data_base64 = base64encode(templatefile("${path.module}/user-data.sh", {
     efs_id = var.efs_id
+    region = data.aws_region.current.id
   }))
 
   tags = {

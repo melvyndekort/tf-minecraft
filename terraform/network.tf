@@ -66,6 +66,15 @@ resource "aws_security_group" "minecraft" {
   }
 
   ingress {
+    description      = "Geyser Bedrock UDP"
+    from_port        = 19132
+    to_port          = 19132
+    protocol         = "udp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
     description      = "Ping"
     from_port        = 8
     to_port          = 0
