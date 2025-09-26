@@ -4,15 +4,35 @@ import sys
 import requests
 
 
-def get_instance_metadata(path):
-    """Get EC2 instance metadata."""
+def get_ecs_task_metadata():
+    """Get ECS task metadata for Fargate."""
     try:
-        response = requests.get(f"http://169.254.169.254/latest/meta-data/{path}", timeout=5)
+        metadata_uri = os.getenv('ECS_CONTAINER_METADATA_URI_V4')
+        if not metadata_uri:
+            print("Error: ECS_CONTAINER_METADATA_URI_V4 not found")
+            return None, None
+            
+        # Get task metadata
+        response = requests.get(f"{metadata_uri}/task", timeout=5)
         response.raise_for_status()
-        return response.text
+        task_metadata = response.json()
+        
+        # Extract public IP from network interfaces
+        ipv4 = None
+        ipv6 = None
+        
+        for container in task_metadata.get('Containers', []):
+            for network in container.get('Networks', []):
+                if network.get('NetworkMode') == 'awsvpc':
+                    ipv4 = network.get('IPv4Addresses', [None])[0]
+                    ipv6_list = network.get('IPv6Addresses', [])
+                    ipv6 = ipv6_list[0] if ipv6_list else None
+                    break
+        
+        return ipv4, ipv6
     except requests.RequestException as e:
-        print(f"Error getting metadata {path}: {e}")
-        return None
+        print(f"Error getting ECS metadata: {e}")
+        return None, None
 
 
 def update_dns_record(zone_id, record_id, record_type, name, content, api_token):
@@ -55,9 +75,8 @@ def main():
             print(f"Error: {var} environment variable not set")
             sys.exit(1)
     
-    # Get instance IPs
-    ipv4 = get_instance_metadata("public-ipv4")
-    ipv6 = get_instance_metadata("ipv6")
+    # Get task IPs from ECS metadata
+    ipv4, ipv6 = get_ecs_task_metadata()
     
     if not ipv4:
         print("Error: Could not get IPv4 address")

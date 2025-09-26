@@ -7,19 +7,33 @@ from unittest.mock import patch
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from dns_updater import get_instance_metadata, update_dns_record, main
+from dns_updater import get_ecs_task_metadata, update_dns_record, main
 
 
 @responses.activate
-def test_get_instance_metadata_success():
-    responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/public-ipv4", body="1.2.3.4")
-    assert get_instance_metadata("public-ipv4") == "1.2.3.4"
+def test_get_ecs_task_metadata_success():
+    metadata_uri = "http://169.254.170.2/v4/metadata"
+    responses.add(responses.GET, f"{metadata_uri}/task", json={
+        "Containers": [{
+            "Networks": [{
+                "NetworkMode": "awsvpc",
+                "IPv4Addresses": ["1.2.3.4"],
+                "IPv6Addresses": ["2001:db8::1"]
+            }]
+        }]
+    })
+    
+    with patch.dict(os.environ, {"ECS_CONTAINER_METADATA_URI_V4": metadata_uri}):
+        ipv4, ipv6 = get_ecs_task_metadata()
+        assert ipv4 == "1.2.3.4"
+        assert ipv6 == "2001:db8::1"
 
 
-@responses.activate
-def test_get_instance_metadata_failure():
-    responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/public-ipv4", status=404)
-    assert get_instance_metadata("public-ipv4") is None
+def test_get_ecs_task_metadata_no_uri():
+    with patch.dict(os.environ, {}, clear=True):
+        ipv4, ipv6 = get_ecs_task_metadata()
+        assert ipv4 is None
+        assert ipv6 is None
 
 
 @responses.activate
@@ -46,12 +60,20 @@ def test_main_missing_env_vars():
     "CLOUDFLARE_A_RECORD_ID": "a_record123", 
     "CLOUDFLARE_AAAA_RECORD_ID": "aaaa_record123",
     "CLOUDFLARE_API_TOKEN": "token123",
-    "DNS_NAME": "test.example.com"
+    "DNS_NAME": "test.example.com",
+    "ECS_CONTAINER_METADATA_URI_V4": "http://169.254.170.2/v4/metadata"
 })
 @responses.activate
 def test_main_success():
-    responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/public-ipv4", body="1.2.3.4")
-    responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/ipv6", body="2001:db8::1")
+    responses.add(responses.GET, "http://169.254.170.2/v4/metadata/task", json={
+        "Containers": [{
+            "Networks": [{
+                "NetworkMode": "awsvpc",
+                "IPv4Addresses": ["1.2.3.4"],
+                "IPv6Addresses": ["2001:db8::1"]
+            }]
+        }]
+    })
     responses.add(responses.PUT, "https://api.cloudflare.com/client/v4/zones/zone123/dns_records/a_record123", json={"success": True})
     responses.add(responses.PUT, "https://api.cloudflare.com/client/v4/zones/zone123/dns_records/aaaa_record123", json={"success": True})
     main()  # Should not raise
@@ -64,9 +86,8 @@ def test_main_success():
     "CLOUDFLARE_API_TOKEN": "token123",
     "DNS_NAME": "test.example.com"
 })
-@responses.activate
 def test_main_no_ipv4_fails():
-    responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/public-ipv4", status=404)
-    with pytest.raises(SystemExit) as exc_info:
-        main()
-    assert exc_info.value.code == 1
+    with patch.dict(os.environ, {"ECS_CONTAINER_METADATA_URI_V4": ""}, clear=False):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
