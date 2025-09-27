@@ -42,6 +42,16 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
 
     resources = ["*"] # kan specifieker: de KMS key die SSM gebruikt
   }
+
+  # DNS updater permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecs:DescribeTasks",
+      "ec2:DescribeNetworkInterfaces"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "ecs_ssm_access" {

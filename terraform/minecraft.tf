@@ -41,11 +41,6 @@ resource "aws_ecs_task_definition" "minecraft" {
           protocol      = "tcp"
         },
         {
-          containerPort = 25565
-          hostPort      = 25565
-          protocol      = "udp"
-        },
-        {
           containerPort = 19132
           hostPort      = 19132
           protocol      = "udp"
@@ -64,6 +59,11 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "VERSION", value = "1.21.1" },
         { name = "SERVER_NAME", value = "MelvynMC" },
         { name = "MOTD", value = "Melvyn's MC Server" },
+        { name = "SERVER_IP", value = "0.0.0.0" },
+        { name = "SERVER_PORT", value = "25565" },
+        { name = "ENABLE_QUERY", value = "true" },
+        { name = "QUERY_PORT", value = "25565" },
+        { name = "JVM_OPTS", value = "-Djava.net.preferIPv4Stack=true" },
       ]
       logConfiguration = {
         logDriver = "awslogs"

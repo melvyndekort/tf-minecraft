@@ -48,16 +48,7 @@ resource "aws_security_group" "minecraft" {
   }
 
   ingress {
-    description      = "Minecraft UDP"
-    from_port        = 25565
-    to_port          = 25565
-    protocol         = "udp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  ingress {
-    description      = "Minecraft TCP"
+    description      = "Minecraft Java"
     from_port        = 25565
     to_port          = 25565
     protocol         = "tcp"
@@ -66,7 +57,7 @@ resource "aws_security_group" "minecraft" {
   }
 
   ingress {
-    description      = "Geyser Bedrock UDP"
+    description      = "Geyser Bedrock"
     from_port        = 19132
     to_port          = 19132
     protocol         = "udp"
