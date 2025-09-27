@@ -56,7 +56,7 @@ resource "aws_ecs_task_definition" "minecraft" {
       environment = [
         { name = "EULA", value = "TRUE" },
         { name = "TYPE", value = "PAPER" },
-        { name = "VERSION", value = "1.21.1" },
+        { name = "VERSION", value = var.paper_version },
         { name = "SERVER_NAME", value = "MelvynMC" },
         { name = "MOTD", value = "Melvyn's MC Server" },
         { name = "SERVER_IP", value = "0.0.0.0" },
