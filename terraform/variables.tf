@@ -40,3 +40,8 @@ variable "ssh_public_key" {
   type        = string
   default     = ""
 }
+
+variable "paper_version" {
+  description = "Minecraft Paper server version"
+  type        = string
+}
