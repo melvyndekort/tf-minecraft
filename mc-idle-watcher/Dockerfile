@@ -16,5 +16,6 @@ COPY --from=builder /usr/local/lib/python3.13/site-packages /app/site-packages
 COPY src/idle_watcher.py ./
 
 ENV PYTHONPATH=/app/site-packages
+ENV PYTHONUNBUFFERED=1
 
 CMD ["idle_watcher.py"]
