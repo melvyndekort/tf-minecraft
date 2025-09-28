@@ -40,10 +40,10 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
       "kms:Decrypt"
     ]
 
-    resources = ["*"] # kan specifieker: de KMS key die SSM gebruikt
+    resources = ["*"]
   }
 
-  # DNS updater permissions
+  # mc-dns-updater permissions
   statement {
     effect = "Allow"
     actions = [
@@ -51,6 +51,15 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
       "ec2:DescribeNetworkInterfaces"
     ]
     resources = ["*"]
+  }
+
+  # mc-idle-watcher permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecs:UpdateService"
+    ]
+    resources = [aws_ecs_service.minecraft.arn]
   }
 }
 

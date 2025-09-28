@@ -3,6 +3,16 @@ resource "aws_ecs_cluster" "minecraft" {
   name = "minecraft-cluster"
 }
 
+resource "random_string" "random_password" {
+  length  = 20
+  special = false
+  upper   = true
+}
+
+locals {
+  minecraft_service_name = "minecraft-service"
+}
+
 resource "aws_ecs_task_definition" "minecraft" {
   family                   = "minecraft-task"
   network_mode             = "awsvpc"
@@ -63,7 +73,10 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "SERVER_PORT", value = "25565" },
         { name = "ENABLE_QUERY", value = "true" },
         { name = "QUERY_PORT", value = "25565" },
-        { name = "JVM_OPTS", value = "-Djava.net.preferIPv4Stack=true" },
+        { name = "ENABLE_RCON", value = "true" },
+        { name = "RCON_PORT", value = "25575" },
+        { name = "RCON_PASSWORD", value = random_string.random_password.result },
+        { name = "JVM_OPTS", value = "-Djava.net.preferIPv4Stack=true" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -75,7 +88,31 @@ resource "aws_ecs_task_definition" "minecraft" {
       }
     },
     {
-      name      = "dns-updater"
+      name      = "mc-idle-watcher"
+      image     = "ghcr.io/melvyndekort/mc-idle-watcher:latest"
+      essential = true
+      environment = [
+        { name = "RCON_HOST", value = "localhost" },
+        { name = "RCON_PORT", value = "25575" },
+        { name = "RCON_PASSWORD", value = random_string.random_password.result },
+        { name = "ECS_CLUSTER", value = aws_ecs_cluster.minecraft.name },
+        { name = "ECS_SERVICE", value = local.minecraft_service_name },
+        { name = "AWS_REGION", value = var.region },
+        { name = "DISCORD_WEBHOOK", value = var.discord_webhook_url },
+        { name = "IDLE_MINUTES", value = "15" },
+        { name = "CHECK_INTERVAL", value = "30" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.minecraft.name
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "mc-idle-watcher"
+        }
+      }
+    },
+    {
+      name      = "mc-dns-updater"
       image     = "ghcr.io/melvyndekort/dns-updater:latest"
       essential = false
       environment = [
@@ -95,7 +132,7 @@ resource "aws_ecs_task_definition" "minecraft" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.minecraft.name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "dns-updater"
+          "awslogs-stream-prefix" = "mc-dns-updater"
         }
       }
     }
@@ -103,7 +140,7 @@ resource "aws_ecs_task_definition" "minecraft" {
 }
 
 resource "aws_ecs_service" "minecraft" {
-  name                               = "minecraft-service"
+  name                               = local.minecraft_service_name
   cluster                            = aws_ecs_cluster.minecraft.id
   task_definition                    = aws_ecs_task_definition.minecraft.arn
   desired_count                      = var.desired_count

@@ -45,3 +45,10 @@ variable "paper_version" {
   description = "Minecraft Paper server version"
   type        = string
 }
+
+variable "discord_webhook_url" {
+  description = "Discord webhook URL for notifications (optional)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
