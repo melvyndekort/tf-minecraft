@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "discord-bot"
+name = "mc-discord-bot"
 version = "0.1.0"
 description = "Discord bot for Minecraft server control"
 authors = ["Melvyn de Kort <melvyn@mdekort.nl>"]

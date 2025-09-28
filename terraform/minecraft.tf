@@ -113,7 +113,7 @@ resource "aws_ecs_task_definition" "minecraft" {
     },
     {
       name      = "mc-dns-updater"
-      image     = "ghcr.io/melvyndekort/dns-updater:latest"
+      image     = "ghcr.io/melvyndekort/mc-dns-updater:latest"
       essential = false
       environment = [
         { name = "CLOUDFLARE_ZONE_ID", value = data.cloudflare_zone.zone.zone_id },

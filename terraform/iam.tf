@@ -75,7 +75,7 @@ resource "aws_iam_role_policy_attachment" "ecs_ssm_access" {
 
 # Discord bot IAM user
 resource "aws_iam_user" "discord_bot" {
-  name = "discord-bot"
+  name = "mc-discord-bot"
 }
 
 resource "aws_iam_access_key" "discord_bot" {
@@ -84,7 +84,7 @@ resource "aws_iam_access_key" "discord_bot" {
 
 # Discord bot IAM role
 resource "aws_iam_role" "discord_bot_role" {
-  name               = "discord-bot-role"
+  name               = "mc-discord-bot-role"
   assume_role_policy = data.aws_iam_policy_document.discord_bot_assume_role.json
 }
 
@@ -121,7 +121,7 @@ data "aws_iam_policy_document" "discord_bot_ecs" {
 }
 
 resource "aws_iam_policy" "discord_bot_ecs" {
-  name   = "discord-bot-ecs"
+  name   = "mc-discord-bot-ecs"
   policy = data.aws_iam_policy_document.discord_bot_ecs.json
 }
 
