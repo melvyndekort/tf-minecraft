@@ -1,12 +1,12 @@
 import os
 import time
 import boto3
-from datetime import datetime
+from datetime import datetime, UTC
 import requests
 from mcrcon import MCRcon
 
 # ==== Tracking last player ====
-last_seen_players = datetime.utcnow()
+last_seen_players = datetime.now(UTC)
 
 def send_discord_message(message: str):
     webhook = os.getenv("DISCORD_WEBHOOK")
@@ -54,28 +54,42 @@ def shutdown_ecs_service():
 
 def main():
     print("Minecraft idle watcher started.")
+    
+    # Validate required environment variables
+    required_vars = ["RCON_HOST", "RCON_PASSWORD", "ECS_CLUSTER", "ECS_SERVICE"]
+    for var in required_vars:
+        if not os.getenv(var):
+            print(f"ERROR: Required environment variable {var} is not set")
+            return
+    
     global last_seen_players
     
     idle_minutes = int(os.getenv("IDLE_MINUTES", "15"))
     check_interval = int(os.getenv("CHECK_INTERVAL", "60"))
     
-    while True:
-        player_count = get_player_count()
-        now = datetime.utcnow()
+    print(f"Configuration: idle_minutes={idle_minutes}, check_interval={check_interval}")
+    
+    try:
+        while True:
+            player_count = get_player_count()
+            now = datetime.now(UTC)
 
-        if player_count > 0:
-            last_seen_players = now
-            print(f"{now} - Players online: {player_count}")
-        else:
-            idle_time = now - last_seen_players
-            minutes_idle = idle_time.total_seconds() / 60
-            print(f"{now} - No players online for {minutes_idle:.1f} minutes")
+            if player_count > 0:
+                last_seen_players = now
+                print(f"{now} - Players online: {player_count}")
+            else:
+                idle_time = now - last_seen_players
+                minutes_idle = idle_time.total_seconds() / 60
+                print(f"{now} - No players online for {minutes_idle:.1f} minutes")
 
-            if minutes_idle >= idle_minutes:
-                shutdown_ecs_service()
-                break
+                if minutes_idle >= idle_minutes:
+                    shutdown_ecs_service()
+                    break
 
-        time.sleep(check_interval)
+            time.sleep(check_interval)
+    except Exception as e:
+        print(f"ERROR: Main loop failed: {e}")
+        raise
 
 if __name__ == "__main__":
     main()
