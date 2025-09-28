@@ -47,7 +47,18 @@ terraform apply
 # Copy the output role ARN to GitHub repository secrets as AWS_ROLE_ARN
 ```
 
-### 2. Deploy Infrastructure
+### 2. Configure Secrets
+
+```bash
+# Create and edit secrets file
+cp terraform/secrets.yaml.example terraform/secrets.yaml
+# Edit terraform/secrets.yaml with your Discord webhook URL
+
+# Encrypt the secrets file
+make encrypt
+```
+
+### 3. Deploy Infrastructure
 
 ```bash
 # Clone the repository
@@ -65,7 +76,7 @@ terraform plan
 terraform apply
 ```
 
-### 3. Setup Discord Bot
+### 4. Setup Discord Bot
 
 ```bash
 cd mc-discord-bot
@@ -86,7 +97,7 @@ EOF
 docker-compose up -d
 ```
 
-### 4. Discord Commands
+### 5. Discord Commands
 
 Once the bot is running, use these slash commands in Discord:
 

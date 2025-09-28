@@ -29,7 +29,8 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
     ]
 
     resources = [
-      aws_ssm_parameter.cloudflare_api_token.arn
+      aws_ssm_parameter.cloudflare_api_token.arn,
+      aws_ssm_parameter.discord_webhook_url.arn
     ]
   }
 

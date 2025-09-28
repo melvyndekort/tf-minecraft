@@ -98,9 +98,11 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "ECS_CLUSTER", value = aws_ecs_cluster.minecraft.name },
         { name = "ECS_SERVICE", value = local.minecraft_service_name },
         { name = "AWS_REGION", value = var.region },
-        { name = "DISCORD_WEBHOOK", value = var.discord_webhook_url },
         { name = "IDLE_MINUTES", value = "15" },
         { name = "CHECK_INTERVAL", value = "30" }
+      ]
+      secrets = [
+        { name = "DISCORD_WEBHOOK", valueFrom = aws_ssm_parameter.discord_webhook_url.arn }
       ]
       logConfiguration = {
         logDriver = "awslogs"
