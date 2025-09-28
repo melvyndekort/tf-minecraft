@@ -7,6 +7,7 @@ A scalable Minecraft server infrastructure on AWS ECS with Discord bot integrati
 - **Serverless Minecraft Server**: Runs on AWS ECS Fargate with automatic scaling
 - **Discord Bot Integration**: Start, stop, and check server status via Discord commands
 - **Dynamic DNS**: Automatic IP updates via Cloudflare DNS
+- **Idle Monitoring**: Automatic server shutdown when no players are online
 - **Persistent Storage**: EFS-backed world data that persists across restarts
 - **Cost Optimized**: Pay only when the server is running
 
@@ -67,7 +68,7 @@ terraform apply
 ### 3. Setup Discord Bot
 
 ```bash
-cd discord-bot
+cd mc-discord-bot
 
 # Create environment file
 cat > .env << EOF
@@ -104,12 +105,13 @@ tf-minecraft/
 ├── terraform/           # Main infrastructure code
 │   ├── *.tf            # Terraform configuration files
 │   └── terraform.tfvars # Configuration variables
-├── discord-bot/          # Discord bot for server management
+├── mc-discord-bot/       # Discord bot for server management
 │   ├── src/bot.py       # Bot implementation
 │   ├── tests/           # Unit tests
 │   ├── Dockerfile       # Container configuration
 │   └── docker-compose.yml
-├── dns-updater/         # Dynamic DNS updater
+├── mc-dns-updater/      # Dynamic DNS updater
+├── mc-idle-watcher/     # Automatic server shutdown when idle
 └── .github/workflows/   # CI/CD pipelines
 ```
 
@@ -122,7 +124,7 @@ tf-minecraft/
 | `DISCORD_TOKEN` | Discord bot token | `MTQx...` |
 | `ECS_CLUSTER` | ECS cluster name | `minecraft-cluster` |
 | `ECS_SERVICE` | ECS service name | `minecraft-service` |
-| `AWS_ROLE_ARN` | IAM role for bot | `arn:aws:iam::123:role/discord-bot-role` |
+| `AWS_ROLE_ARN` | IAM role for bot | `arn:aws:iam::123:role/mc-discord-bot-role` |
 | `AWS_DEFAULT_REGION` | AWS region | `us-east-1` |
 
 ### Terraform Variables
@@ -178,7 +180,7 @@ EFS is mounted at `/mnt/efs`. Set `create_temp_ec2 = false` when done.
 ### Discord Bot Development
 
 ```bash
-cd discord-bot
+cd mc-discord-bot
 
 # Install dependencies
 poetry install
@@ -244,5 +246,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### Getting Help
 
 - Check CloudWatch logs: `/ecs/minecraft`
-- Review Discord bot logs: `docker-compose logs discord-bot`
+- Review Discord bot logs: `docker-compose logs mc-discord-bot`
 - AWS ECS Console for service status

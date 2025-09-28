@@ -1,16 +1,16 @@
-name: Deploy discord-bot to GHCR
+name: Deploy mc-discord-bot to GHCR
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'discord-bot/**'
-      - '.github/workflows/discord-bot.yml'
+      - 'mc-discord-bot/**'
+      - '.github/workflows/mc-discord-bot.yml'
   pull_request:
     paths:
-      - 'discord-bot/**'
-      - '.github/workflows/discord-bot.yml'
+      - 'mc-discord-bot/**'
+      - '.github/workflows/mc-discord-bot.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: './discord-bot'
+        working-directory: './mc-discord-bot'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
-          key: ${{ runner.os }}-poetry-${{ hashFiles('discord-bot/poetry.lock') }}
+          key: ${{ runner.os }}-poetry-${{ hashFiles('mc-discord-bot/poetry.lock') }}
           restore-keys: |
             ${{ runner.os }}-poetry-
       - name: Install dependencies
@@ -60,10 +60,10 @@ jobs:
       - name: 'Build and push AMD64 Image'
         uses: docker/build-push-action@v6
         with:
-          context: ./discord-bot
+          context: ./mc-discord-bot
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/melvyndekort/discord-bot:latest-amd64
+          tags: ghcr.io/melvyndekort/mc-discord-bot:latest-amd64
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
 
@@ -85,10 +85,10 @@ jobs:
       - name: 'Build and push ARM64 Image'
         uses: docker/build-push-action@v6
         with:
-          context: ./discord-bot
+          context: ./mc-discord-bot
           platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/melvyndekort/discord-bot:latest-arm64
+          tags: ghcr.io/melvyndekort/mc-discord-bot:latest-arm64
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
 
@@ -105,6 +105,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: 'Create and push manifest'
         run: |
-          docker buildx imagetools create -t ghcr.io/melvyndekort/discord-bot:latest \
-            ghcr.io/melvyndekort/discord-bot:latest-amd64 \
-            ghcr.io/melvyndekort/discord-bot:latest-arm64
+          docker buildx imagetools create -t ghcr.io/melvyndekort/mc-discord-bot:latest \
+            ghcr.io/melvyndekort/mc-discord-bot:latest-amd64 \
+            ghcr.io/melvyndekort/mc-discord-bot:latest-arm64

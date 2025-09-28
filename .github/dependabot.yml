@@ -10,7 +10,7 @@ updates:
     reviewers:
       - "melvyndekort"
   - package-ecosystem: "pip"
-    directory: "/discord-bot"
+    directory: "/mc-discord-bot"
     schedule:
       interval: "daily"
     assignees:
@@ -18,7 +18,7 @@ updates:
     reviewers:
       - "melvyndekort"
   - package-ecosystem: "pip"
-    directory: "/dns-updater"
+    directory: "/mc-dns-updater"
     schedule:
       interval: "daily"
     assignees:
@@ -26,7 +26,7 @@ updates:
     reviewers:
       - "melvyndekort"
   - package-ecosystem: "docker"
-    directory: "/discord-bot"
+    directory: "/mc-discord-bot"
     schedule:
       interval: "daily"
     assignees:
@@ -34,7 +34,7 @@ updates:
     reviewers:
       - "melvyndekort"
   - package-ecosystem: "docker"
-    directory: "/dns-updater"
+    directory: "/mc-dns-updater"
     schedule:
       interval: "daily"
     assignees:

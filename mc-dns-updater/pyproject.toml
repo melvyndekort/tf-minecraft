@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "dns-updater"
+name = "mc-dns-updater"
 version = "0.1.0"
 description = "DNS updater for Minecraft server"
 authors = ["Melvyn de Kort <melvyn@mdekort.nl>"]

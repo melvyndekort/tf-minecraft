@@ -1,16 +1,16 @@
-name: Deploy dns-updater to GHCR
+name: Deploy mc-dns-updater to GHCR
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'dns-updater/**'
-      - '.github/workflows/dns-updater.yml'
+      - 'mc-dns-updater/**'
+      - '.github/workflows/mc-dns-updater.yml'
   pull_request:
     paths:
-      - 'dns-updater/**'
-      - '.github/workflows/dns-updater.yml'
+      - 'mc-dns-updater/**'
+      - '.github/workflows/mc-dns-updater.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: './dns-updater'
+        working-directory: './mc-dns-updater'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
-          key: ${{ runner.os }}-poetry-${{ hashFiles('dns-updater/poetry.lock') }}
+          key: ${{ runner.os }}-poetry-${{ hashFiles('mc-dns-updater/poetry.lock') }}
           restore-keys: |
             ${{ runner.os }}-poetry-
       - name: Install dependencies
@@ -60,10 +60,10 @@ jobs:
       - name: 'Build and push AMD64 Image'
         uses: docker/build-push-action@v6
         with:
-          context: ./dns-updater
+          context: ./mc-dns-updater
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/melvyndekort/dns-updater:latest-amd64
+          tags: ghcr.io/melvyndekort/mc-dns-updater:latest-amd64
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
 
@@ -85,10 +85,10 @@ jobs:
       - name: 'Build and push ARM64 Image'
         uses: docker/build-push-action@v6
         with:
-          context: ./dns-updater
+          context: ./mc-dns-updater
           platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/melvyndekort/dns-updater:latest-arm64
+          tags: ghcr.io/melvyndekort/mc-dns-updater:latest-arm64
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
 
@@ -105,6 +105,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: 'Create and push manifest'
         run: |
-          docker buildx imagetools create -t ghcr.io/melvyndekort/dns-updater:latest \
-            ghcr.io/melvyndekort/dns-updater:latest-amd64 \
-            ghcr.io/melvyndekort/dns-updater:latest-arm64
+          docker buildx imagetools create -t ghcr.io/melvyndekort/mc-dns-updater:latest \
+            ghcr.io/melvyndekort/mc-dns-updater:latest-amd64 \
+            ghcr.io/melvyndekort/mc-dns-updater:latest-arm64
