@@ -1,9 +1,13 @@
+# Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
+terraform/*.tfstate
+terraform/*.tfstate.*
 terraform/secrets.yaml
 
+# Python
 .env
 poetry.lock
 __pycache__/
