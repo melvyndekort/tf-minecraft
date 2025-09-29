@@ -1,5 +1,6 @@
 import os
 import time
+import signal
 import boto3
 from datetime import datetime, UTC
 import requests
@@ -7,6 +8,18 @@ from mcrcon import MCRcon
 
 # ==== Tracking last player ====
 last_seen_players = datetime.now(UTC)
+
+def send_rcon_message(message: str):
+    try:
+        host = os.getenv("RCON_HOST")
+        port = int(os.getenv("RCON_PORT", "25575"))
+        password = os.getenv("RCON_PASSWORD")
+        
+        with MCRcon(host, password, port=port) as mcr:
+            mcr.command(f"say {message}")
+            print(f"Sent RCON message: {message}")
+    except Exception as e:
+        print(f"Failed to send RCON message: {e}")
 
 def send_discord_message(message: str):
     webhook = os.getenv("DISCORD_WEBHOOK")
@@ -52,8 +65,21 @@ def shutdown_ecs_service():
     except Exception as e:
         print(f"Failed to scale ECS service down: {e}")
 
+def handle_shutdown_signal(signum, frame):
+    print(f"Received signal {signum}, preparing for shutdown...")
+    send_rcon_message("§c[SERVER] Server will restart in 2 minutes due to AWS maintenance!")
+    send_discord_message("⚠️ Minecraft server received shutdown signal - restarting in 2 minutes")
+    
+    # Wait a bit for the message to be sent, then exit gracefully
+    time.sleep(5)
+    exit(0)
+
 def main():
     print("Minecraft idle watcher started.")
+    
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)
+    signal.signal(signal.SIGINT, handle_shutdown_signal)
     
     # Validate required environment variables
     required_vars = ["RCON_HOST", "RCON_PASSWORD", "ECS_CLUSTER", "ECS_SERVICE"]
