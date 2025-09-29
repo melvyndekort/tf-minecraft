@@ -6,8 +6,9 @@ from datetime import datetime, UTC
 import requests
 from mcrcon import MCRcon
 
-# ==== Tracking last player ====
+# ==== Tracking last player and server availability ====
 last_seen_players = datetime.now(UTC)
+server_available = False
 
 def send_rcon_message(message: str):
     try:
@@ -31,6 +32,7 @@ def send_discord_message(message: str):
         print(f"Failed to send Discord message: {e}")
 
 def get_player_count():
+    global server_available
     try:
         host = os.getenv("RCON_HOST")
         port = int(os.getenv("RCON_PORT", "25575"))
@@ -38,6 +40,13 @@ def get_player_count():
         
         with MCRcon(host, password, port=port) as mcr:
             resp = mcr.command("list")
+            
+            # If this is the first successful RCON command, notify Discord
+            if not server_available:
+                server_available = True
+                dns_name = os.getenv("DNS_NAME", host)
+                send_discord_message(f"🟢 Minecraft server is online and reachable at `{dns_name}`")
+            
             # Example response: "There are 1 of a max of 20 players online: Player1"
             parts = resp.split(":")
             if len(parts) >= 2:
@@ -45,6 +54,7 @@ def get_player_count():
                 return len(players.split(", ")) if players else 0
             return 0
     except Exception as e:
+        server_available = False
         print(f"Failed to get player count: {e}")
         return 0
 
@@ -88,7 +98,8 @@ def main():
             print(f"ERROR: Required environment variable {var} is not set")
             return
     
-    global last_seen_players
+    global last_seen_players, server_available
+    server_available = False  # Reset server availability state on startup
     
     idle_minutes = int(os.getenv("IDLE_MINUTES", "15"))
     check_interval = int(os.getenv("CHECK_INTERVAL", "60"))

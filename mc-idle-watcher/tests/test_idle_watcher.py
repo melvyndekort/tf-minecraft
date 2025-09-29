@@ -28,15 +28,39 @@ class TestIdleWatcher:
             # Should not raise an exception
             idle_watcher.send_discord_message("Test message")
     
+    @patch('idle_watcher.send_discord_message')
     @patch('idle_watcher.MCRcon')
-    def test_get_player_count_with_players(self, mock_mcrcon):
-        """Test getting player count when players are online"""
+    def test_get_player_count_server_becomes_available(self, mock_mcrcon, mock_discord):
+        """Test Discord notification when server becomes available"""
         mock_mcr = MagicMock()
-        mock_mcr.command.return_value = "There are 2 of a max of 20 players online: Player1, Player2"
+        mock_mcr.command.return_value = "There are 1 of a max of 20 players online: Player1"
         mock_mcrcon.return_value.__enter__.return_value = mock_mcr
         
+        # Reset server availability
+        idle_watcher.server_available = False
+        
+        with patch.dict(os.environ, {'DNS_NAME': 'mc.example.com'}):
+            count = idle_watcher.get_player_count()
+            
+        assert count == 1
+        assert idle_watcher.server_available == True
+        mock_discord.assert_called_once_with("🟢 Minecraft server is online and reachable at `mc.example.com`")
+    
+    @patch('idle_watcher.send_discord_message')
+    @patch('idle_watcher.MCRcon')
+    def test_get_player_count_server_already_available(self, mock_mcrcon, mock_discord):
+        """Test no Discord notification when server is already available"""
+        mock_mcr = MagicMock()
+        mock_mcr.command.return_value = "There are 1 of a max of 20 players online: Player1"
+        mock_mcrcon.return_value.__enter__.return_value = mock_mcr
+        
+        # Set server as already available
+        idle_watcher.server_available = True
+        
         count = idle_watcher.get_player_count()
-        assert count == 2
+        
+        assert count == 1
+        mock_discord.assert_not_called()
     
     @patch('idle_watcher.MCRcon')
     def test_get_player_count_no_players(self, mock_mcrcon):
@@ -44,6 +68,9 @@ class TestIdleWatcher:
         mock_mcr = MagicMock()
         mock_mcr.command.return_value = "There are 0 of a max of 20 players online:"
         mock_mcrcon.return_value.__enter__.return_value = mock_mcr
+        
+        # Set server as already available to avoid Discord notification
+        idle_watcher.server_available = True
         
         count = idle_watcher.get_player_count()
         assert count == 0
@@ -55,6 +82,7 @@ class TestIdleWatcher:
         
         count = idle_watcher.get_player_count()
         assert count == 0
+        assert idle_watcher.server_available == False
     
     @patch('idle_watcher.boto3.client')
     @patch('idle_watcher.send_discord_message')
