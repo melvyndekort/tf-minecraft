@@ -1,4 +1,4 @@
-.PHONY := clean_secrets decrypt encrypt
+.PHONY := clean_secrets decrypt encrypt exec
 
 ifndef AWS_SESSION_TOKEN
   $(error Not logged in, please run 'awsume')
@@ -22,3 +22,16 @@ encrypt:
 		--output text \
 		--query CiphertextBlob > terraform/secrets.yaml.encrypted
 	@rm -f terraform/secrets.yaml
+
+exec:
+	@TASK_ARN=$$(aws ecs list-tasks --cluster minecraft-cluster --service-name minecraft-service --query 'taskArns[0]' --output text); \
+	if [ "$$TASK_ARN" = "None" ]; then \
+		echo "No running tasks found. Start the server first."; \
+		exit 1; \
+	fi; \
+	aws ecs execute-command \
+		--cluster minecraft-cluster \
+		--task $$TASK_ARN \
+		--container minecraft \
+		--interactive \
+		--command "/bin/bash"
