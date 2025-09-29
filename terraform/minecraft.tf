@@ -99,7 +99,8 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "ECS_SERVICE", value = local.minecraft_service_name },
         { name = "AWS_REGION", value = var.region },
         { name = "IDLE_MINUTES", value = "15" },
-        { name = "CHECK_INTERVAL", value = "30" }
+        { name = "CHECK_INTERVAL", value = "30" },
+        { name = "DNS_NAME", value = local.fqdn }
       ]
       secrets = [
         { name = "DISCORD_WEBHOOK", valueFrom = aws_ssm_parameter.discord_webhook_url.arn }
