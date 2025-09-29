@@ -62,6 +62,18 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
     ]
     resources = [aws_ecs_service.minecraft.arn]
   }
+
+  # ECS Exec permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "ecs_ssm_access" {

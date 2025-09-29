@@ -186,6 +186,16 @@ terraform output temp_ec2_ssh_command  # Get SSH command
 
 EFS is mounted at `/mnt/efs`. Set `create_temp_ec2 = false` when done.
 
+## 🔧 Container Access
+
+To access the running Minecraft container for troubleshooting or configuration:
+
+```bash
+make exec
+```
+
+This opens an interactive shell in the Minecraft container. The server must be running first.
+
 ## 🛠️ Development
 
 ### Discord Bot Development
