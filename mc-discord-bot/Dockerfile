@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY pyproject.toml ./
 RUN poetry config virtualenvs.create false && poetry install --only=main --no-root
 
 # Runtime stage
-FROM python:3.13-alpine
+FROM python:3.14-alpine
 
 WORKDIR /app
 
