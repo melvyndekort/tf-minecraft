@@ -8,6 +8,7 @@ on:
       - 'docker/dns-updater.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-dns-updater.yml'
   pull_request:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'docker/dns-updater.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-dns-updater.yml'
   workflow_dispatch:
 
 permissions:
