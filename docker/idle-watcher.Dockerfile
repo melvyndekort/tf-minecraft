@@ -16,7 +16,7 @@ ENV PATH="/venv/bin:$PATH"
 
 WORKDIR /app
 COPY src/ ./src/
-
+ENV PYTHONPATH="/app/src"
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "-m", "minecraft_tools.idle_watcher.main"]

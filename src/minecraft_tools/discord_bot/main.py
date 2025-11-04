@@ -193,7 +193,7 @@ def create_bot():
     
     return bot
 
-if __name__ == "__main__":
+def main():
     logger.info("Creating and starting Discord bot")
     bot = create_bot()
     try:
@@ -201,3 +201,7 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
         raise
+
+
+if __name__ == "__main__":
+    main()
