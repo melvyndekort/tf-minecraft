@@ -1,17 +1,13 @@
 import os
-import sys
 import pytest
 import responses
 from unittest.mock import patch, MagicMock
 
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from dns_updater import get_task_public_ips, update_dns_record, main
+from minecraft_tools.dns_updater.main import get_task_public_ips, update_dns_record, main
 
 
 @responses.activate
-@patch('dns_updater.boto3')
+@patch('minecraft_tools.dns_updater.main.boto3')
 def test_get_task_public_ips_success(mock_boto3):
     metadata_uri = "http://169.254.170.2/v4/metadata"
     responses.add(responses.GET, f"{metadata_uri}/task", json={
@@ -81,7 +77,7 @@ def test_main_missing_env_vars():
     "ECS_CONTAINER_METADATA_URI_V4": "http://169.254.170.2/v4/metadata"
 })
 @responses.activate
-@patch('dns_updater.boto3')
+@patch('minecraft_tools.dns_updater.main.boto3')
 def test_main_success(mock_boto3):
     responses.add(responses.GET, "http://169.254.170.2/v4/metadata/task", json={
         "TaskARN": "arn:aws:ecs:us-east-1:123456789012:task/cluster-name/task-id"
