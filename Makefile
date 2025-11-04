@@ -1,8 +1,12 @@
-.PHONY := clean_secrets decrypt encrypt exec
+.PHONY := clean_secrets decrypt encrypt exec test
 
 ifndef AWS_SESSION_TOKEN
   $(error Not logged in, please run 'awsume')
 endif
+
+test:
+	uv sync --extra dev
+	uv run pytest
 
 clean_secrets:
 	@rm -f terraform/secrets.yaml
