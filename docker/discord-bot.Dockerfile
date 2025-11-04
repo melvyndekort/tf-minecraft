@@ -17,5 +17,6 @@ ENV PATH="/venv/bin:$PATH"
 
 WORKDIR /app
 COPY src/ ./src/
+ENV PYTHONPATH="/app/src"
 
 CMD ["python", "-m", "minecraft_tools.discord_bot.main"]
