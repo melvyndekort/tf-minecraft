@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/minecraft_tools/discord_bot/**'
+      - 'tests/discord_bot/**'
       - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - 'src/minecraft_tools/discord_bot/**'
+      - 'tests/discord_bot/**'
       - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
