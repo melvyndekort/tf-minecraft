@@ -8,6 +8,7 @@ on:
       - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-discord-bot.yml'
   pull_request:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-discord-bot.yml'
   workflow_dispatch:
 
 permissions:

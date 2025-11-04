@@ -8,6 +8,7 @@ on:
       - 'docker/idle-watcher.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-idle-watcher.yml'
   pull_request:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'docker/idle-watcher.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/mc-idle-watcher.yml'
   workflow_dispatch:
 
 permissions:
