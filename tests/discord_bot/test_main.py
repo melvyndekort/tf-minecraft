@@ -8,11 +8,9 @@ os.environ["DISCORD_TOKEN"] = "test_token"
 os.environ["ECS_CLUSTER"] = "test_cluster"
 os.environ["ECS_SERVICE"] = "test_service"
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 # Mock everything before importing
 with patch('boto3.client'), patch('discord.ext.commands.Bot'):
-    from bot import get_service_status, update_service
+    from minecraft_tools.discord_bot.main import get_service_status, update_service
 
 
 @pytest.mark.asyncio
@@ -41,7 +39,8 @@ async def test_get_service_status():
         }]
     }
     
-    with patch("bot.ecs", mock_ecs), patch("bot.ec2", mock_ec2):
+    with patch("minecraft_tools.discord_bot.main.ecs", mock_ecs), \
+         patch("minecraft_tools.discord_bot.main.ec2", mock_ec2):
         status = await get_service_status()
         assert status["desired"] == 1
         assert status["running"] == 1
@@ -57,7 +56,7 @@ async def test_get_service_status_no_tasks():
         "services": [{"desiredCount": 0, "runningCount": 0}]
     }
     
-    with patch("bot.ecs", mock_ecs):
+    with patch("minecraft_tools.discord_bot.main.ecs", mock_ecs):
         status = await get_service_status()
         assert status["desired"] == 0
         assert status["running"] == 0
@@ -69,7 +68,8 @@ async def test_update_service_no_change_needed():
     """Test update when service is already at desired count"""
     mock_interaction = AsyncMock()
     
-    with patch("bot.get_service_status", return_value={"desired": 1, "running": 1}):
+    with patch("minecraft_tools.discord_bot.main.get_service_status", 
+               return_value={"desired": 1, "running": 1}):
         await update_service(mock_interaction, 1)
         mock_interaction.response.send_message.assert_called_once()
         assert "already at desired count" in mock_interaction.response.send_message.call_args[0][0]
@@ -81,8 +81,9 @@ async def test_update_service_success():
     mock_interaction = AsyncMock()
     mock_ecs = MagicMock()
     
-    with patch("bot.get_service_status", return_value={"desired": 0, "running": 0}), \
-         patch("bot.ecs", mock_ecs):
+    with patch("minecraft_tools.discord_bot.main.get_service_status", 
+               return_value={"desired": 0, "running": 0}), \
+         patch("minecraft_tools.discord_bot.main.ecs", mock_ecs):
         await update_service(mock_interaction, 1)
         mock_ecs.update_service.assert_called_once_with(
             cluster="test_cluster", service="test_service", desiredCount=1
@@ -96,8 +97,9 @@ async def test_update_service_aws_error():
     mock_ecs = MagicMock()
     mock_ecs.update_service.side_effect = Exception("AWS Error")
     
-    with patch("bot.get_service_status", return_value={"desired": 0, "running": 0}), \
-         patch("bot.ecs", mock_ecs):
+    with patch("minecraft_tools.discord_bot.main.get_service_status", 
+               return_value={"desired": 0, "running": 0}), \
+         patch("minecraft_tools.discord_bot.main.ecs", mock_ecs):
         await update_service(mock_interaction, 1)
         mock_interaction.response.send_message.assert_called_once()
         assert "Error updating service" in mock_interaction.response.send_message.call_args[0][0]
