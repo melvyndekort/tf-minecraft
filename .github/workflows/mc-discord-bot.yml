@@ -1,18 +1,18 @@
-name: Idle Watcher
+name: Deploy mc-discord-bot to GHCR
 
 on:
   push:
     branches: [main]
     paths:
-      - 'src/minecraft_tools/idle_watcher/**'
-      - 'docker/idle-watcher.Dockerfile'
+      - 'src/minecraft_tools/discord_bot/**'
+      - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
   pull_request:
     branches: [main]
     paths:
-      - 'src/minecraft_tools/idle_watcher/**'
-      - 'docker/idle-watcher.Dockerfile'
+      - 'src/minecraft_tools/discord_bot/**'
+      - 'docker/discord-bot.Dockerfile'
       - 'pyproject.toml'
       - 'uv.lock'
   workflow_dispatch:
@@ -31,7 +31,7 @@ jobs:
           python-version: '3.14'
       - run: pip install uv
       - run: uv sync --extra dev
-      - run: uv run pytest tests/idle_watcher/
+      - run: uv run pytest tests/discord_bot/
 
   build:
     needs: test
@@ -51,12 +51,12 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./docker/idle-watcher.Dockerfile
+          file: ./docker/discord-bot.Dockerfile
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/melvyndekort/mc-idle-watcher:latest-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
-          cache-from: type=gha,scope=idle-watcher-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
-          cache-to: type=gha,mode=max,scope=idle-watcher-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+          tags: ghcr.io/melvyndekort/mc-discord-bot:latest-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+          cache-from: type=gha,scope=discord-bot-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+          cache-to: type=gha,mode=max,scope=discord-bot-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
 
   manifest:
     needs: build
@@ -69,6 +69,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: |
-          docker buildx imagetools create -t ghcr.io/melvyndekort/mc-idle-watcher:latest \
-            ghcr.io/melvyndekort/mc-idle-watcher:latest-amd64 \
-            ghcr.io/melvyndekort/mc-idle-watcher:latest-arm64
+          docker buildx imagetools create -t ghcr.io/melvyndekort/mc-discord-bot:latest \
+            ghcr.io/melvyndekort/mc-discord-bot:latest-amd64 \
+            ghcr.io/melvyndekort/mc-discord-bot:latest-arm64
