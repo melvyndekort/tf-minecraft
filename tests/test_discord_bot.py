@@ -16,11 +16,13 @@ class TestDiscordBot:
             ecs_cluster="test_cluster",
             ecs_service="test_service",
             aws_role_arn=None,
-            aws_region=None
+            aws_region="us-east-1"
         )
-        bot = create_bot(config)
-        assert bot is not None
-        assert hasattr(bot, 'tree')
+        with patch('minecraft_tools.discord_bot.main.boto3.client') as mock_boto3:
+            mock_boto3.return_value = MagicMock()
+            bot = create_bot(config)
+            assert bot is not None
+            assert hasattr(bot, 'tree')
 
     @pytest.mark.asyncio
     async def test_get_service_status_running(self):
@@ -62,15 +64,17 @@ class TestDiscordBot:
     async def test_update_service_start(self):
         """Test starting service."""
         mock_interaction = AsyncMock()
-        mock_interaction.followup.send = AsyncMock()
+        mock_interaction.response.send_message = AsyncMock()
         mock_interaction.user.name = "testuser"
         mock_interaction.user.discriminator = "1234"
         
         mock_ecs = MagicMock()
         
-        # Mock the get_service_status call that happens inside update_service
-        with patch('minecraft_tools.discord_bot.main.get_service_status') as mock_get_status:
+        # Mock the get_service_status call and boto3.client call
+        with patch('minecraft_tools.discord_bot.main.get_service_status') as mock_get_status, \
+             patch('minecraft_tools.discord_bot.main.boto3.client') as mock_boto3:
             mock_get_status.return_value = {"desired": 0, "running": 0}
+            mock_boto3.return_value = MagicMock()  # Mock EC2 client
             
             await update_service(mock_interaction, mock_ecs, "test-cluster", "test-service", 1)
             
