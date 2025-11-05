@@ -3,11 +3,12 @@ name = "minecraft-tools"
 version = "0.1.0"
 description = "Minecraft server management tools"
 authors = [{name = "Melvyn de Kort", email = "melvyn@mdekort.nl"}]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.34.0",
     "requests>=2.31.0",
     "discord-py>=2.3.2",
+    "audioop-lts>=0.2.0",  # Replacement for deprecated audioop in Python 3.13+
     "typing-extensions>=4.0.0",
     "mcrcon>=0.7.0",
 ]
@@ -19,6 +20,9 @@ dev = [
     "pytest-cov>=7.0.0",
     "moto>=5.1.13",
     "responses>=0.25.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
 ]
 
 [project.scripts]
@@ -32,6 +36,29 @@ packages = ["src/minecraft_tools"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+
+[tool.ruff.lint.isort]
+known-first-party = ["minecraft_tools"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["boto3.*", "botocore.*", "mcrcon.*", "discord.*"]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["hatchling"]

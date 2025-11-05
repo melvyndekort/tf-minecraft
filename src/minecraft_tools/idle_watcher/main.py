@@ -1,132 +1,155 @@
-import os
+"""Idle watcher for Minecraft server - shuts down server when no players are online."""
+
+import logging
 import time
-import signal
+from typing import Any
+
 import boto3
-from datetime import datetime, UTC
-import requests
+from botocore.exceptions import ClientError
 from mcrcon import MCRcon
 
-# ==== Tracking last player and server availability ====
-last_seen_players = datetime.now(UTC)
-server_available = False
+from minecraft_tools.config import IdleWatcherConfig
 
-def send_rcon_message(message: str):
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+def get_player_count(host: str, port: int, password: str = "") -> int:
+    """Get current player count from Minecraft server."""
     try:
-        host = os.getenv("RCON_HOST")
-        port = int(os.getenv("RCON_PORT", "25575"))
-        password = os.getenv("RCON_PASSWORD")
-        
         with MCRcon(host, password, port=port) as mcr:
-            mcr.command(f"say {message}")
-            print(f"Sent RCON message: {message}")
-    except Exception as e:
-        print(f"Failed to send RCON message: {e}")
-
-def send_discord_message(message: str):
-    webhook = os.getenv("DISCORD_WEBHOOK")
-    if not webhook:
-        return
-    try:
-        requests.post(webhook, json={"content": message})
-    except Exception as e:
-        print(f"Failed to send Discord message: {e}")
-
-def get_player_count():
-    global server_available
-    try:
-        host = os.getenv("RCON_HOST")
-        port = int(os.getenv("RCON_PORT", "25575"))
-        password = os.getenv("RCON_PASSWORD")
-        
-        with MCRcon(host, password, port=port) as mcr:
-            resp = mcr.command("list")
-            
-            # If this is the first successful RCON command, notify Discord
-            if not server_available:
-                server_available = True
-                dns_name = os.getenv("DNS_NAME", host)
-                send_discord_message(f"🟢 Minecraft server is online and reachable at `{dns_name}`")
-            
-            # Example response: "There are 1 of a max of 20 players online: Player1"
-            parts = resp.split(":")
-            if len(parts) >= 2:
-                players = parts[1].strip()
-                return len(players.split(", ")) if players else 0
-            return 0
-    except Exception as e:
-        server_available = False
-        print(f"Failed to get player count: {e}")
+            response = mcr.command("list")
+            # Parse response like "There are 0 of a max of 20 players online:"
+            if "There are" in response:
+                parts = response.split()
+                if len(parts) >= 3:
+                    return int(parts[2])
         return 0
+    except Exception as e:
+        logger.warning(f"Failed to get player count: {e}")
+        return -1  # Return -1 to indicate error
 
-def shutdown_ecs_service():
-    print("Shutting down ECS service...")
+
+def get_service_status(ecs_client: Any, cluster: str, service: str) -> dict[str, int]:
+    """Get ECS service status."""
     try:
-        cluster = os.getenv("ECS_CLUSTER")
-        service = os.getenv("ECS_SERVICE")
-        region = os.getenv("AWS_REGION", "us-east-1")
-        
-        client = boto3.client("ecs", region_name=region)
-        client.update_service(
+        response = ecs_client.describe_services(cluster=cluster, services=[service])
+        if not response["services"]:
+            raise ValueError(f"Service {service} not found in cluster {cluster}")
+
+        service_info = response["services"][0]
+        return {
+            "desired": service_info["desiredCount"],
+            "running": service_info["runningCount"],
+        }
+    except ClientError as e:
+        logger.error(f"AWS error getting service status: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error getting service status: {e}")
+        raise
+
+
+def scale_service(
+    ecs_client: Any, cluster: str, service: str, desired_count: int
+) -> bool:
+    """Scale ECS service to desired count."""
+    try:
+        ecs_client.update_service(
             cluster=cluster,
             service=service,
-            desiredCount=0
+            desiredCount=desired_count,
         )
-        send_discord_message("Minecraft server is shutting down due to inactivity. 💤")
+        logger.info(f"Scaled service {service} to {desired_count} tasks")
+        return True
+    except ClientError as e:
+        logger.error(f"AWS error scaling service: {e}")
+        return False
     except Exception as e:
-        print(f"Failed to scale ECS service down: {e}")
+        logger.error(f"Unexpected error scaling service: {e}")
+        return False
 
-def handle_shutdown_signal(signum, frame):
-    print(f"Received signal {signum}, preparing for shutdown...")
-    send_rcon_message("§c[SERVER] Server will restart in 2 minutes due to AWS maintenance!")
-    send_discord_message("⚠️ Minecraft server received shutdown signal - restarting in 2 minutes")
-    
-    # Wait a bit for the message to be sent, then exit gracefully
-    time.sleep(5)
-    exit(0)
 
-def main():
-    print("Minecraft idle watcher started.")
-    
-    # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGTERM, handle_shutdown_signal)
-    signal.signal(signal.SIGINT, handle_shutdown_signal)
-    
-    # Validate required environment variables
-    required_vars = ["RCON_HOST", "RCON_PASSWORD", "ECS_CLUSTER", "ECS_SERVICE"]
-    for var in required_vars:
-        if not os.getenv(var):
-            print(f"ERROR: Required environment variable {var} is not set")
-            return
-    
-    global last_seen_players, server_available
-    server_available = False  # Reset server availability state on startup
-    
-    idle_minutes = int(os.getenv("IDLE_MINUTES", "15"))
-    check_interval = int(os.getenv("CHECK_INTERVAL", "60"))
-    
-    print(f"Configuration: idle_minutes={idle_minutes}, check_interval={check_interval}")
-    
-    try:
-        while True:
-            player_count = get_player_count()
-            now = datetime.now(UTC)
+def monitor_server(config: IdleWatcherConfig) -> None:
+    """Monitor server and shut down if idle."""
+    ecs_client = boto3.client("ecs")
+    idle_start_time = None
 
-            if player_count > 0:
-                last_seen_players = now
-                print(f"{now} - Players online: {player_count}")
+    while True:
+        try:
+            # Check service status
+            status = get_service_status(
+                ecs_client, config.ecs_cluster, config.ecs_service
+            )
+
+            if status["running"] == 0:
+                logger.info("Service is not running, resetting idle timer")
+                idle_start_time = None
+                time.sleep(config.check_interval)
+                continue
+
+            # Get player count
+            player_count = get_player_count(
+                config.minecraft_host, config.minecraft_port
+            )
+
+            if player_count == -1:
+                logger.warning("Could not get player count, assuming server is busy")
+                idle_start_time = None
+            elif player_count == 0:
+                current_time = time.time()
+
+                if idle_start_time is None:
+                    idle_start_time = current_time
+                    logger.info("Server is idle, starting idle timer")
+                else:
+                    idle_duration = current_time - idle_start_time
+                    logger.info(f"Server idle for {idle_duration:.0f} seconds")
+
+                    if idle_duration >= config.idle_threshold:
+                        logger.info("Server has been idle too long, shutting down")
+                        if scale_service(
+                            ecs_client, config.ecs_cluster, config.ecs_service, 0
+                        ):
+                            logger.info("Server shutdown initiated")
+                            idle_start_time = None
+                        else:
+                            logger.error("Failed to shut down server")
             else:
-                idle_time = now - last_seen_players
-                minutes_idle = idle_time.total_seconds() / 60
-                print(f"{now} - No players online for {minutes_idle:.1f} minutes")
+                logger.info(f"Server has {player_count} players, resetting idle timer")
+                idle_start_time = None
 
-                if minutes_idle >= idle_minutes:
-                    shutdown_ecs_service()
-                    break
+        except Exception as e:
+            logger.error(f"Error in monitoring loop: {e}")
+            idle_start_time = None  # Reset on error to be safe
 
-            time.sleep(check_interval)
-    except Exception as e:
-        print(f"ERROR: Main loop failed: {e}")
+        time.sleep(config.check_interval)
+
+
+def main() -> None:
+    """Main entry point."""
+    try:
+        config = IdleWatcherConfig.from_env()
+        logger.info(
+            f"Starting idle watcher for {config.minecraft_host}:{config.minecraft_port} "
+            f"(check every {config.check_interval}s, idle threshold {config.idle_threshold}s)"
+        )
+
+        monitor_server(config)
+
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
         raise
+    except KeyboardInterrupt:
+        logger.info("Idle watcher stopped by user")
+    except Exception as e:
+        logger.error(f"Idle watcher failed: {e}")
+        raise
+
 
 if __name__ == "__main__":
     main()

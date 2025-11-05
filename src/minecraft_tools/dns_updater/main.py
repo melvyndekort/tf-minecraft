@@ -1,159 +1,196 @@
-#!/usr/bin/env python3
-import os
-import sys
-import requests
+"""DNS updater for Minecraft server IP addresses."""
+
+import logging
+import time
+from typing import Any
+
 import boto3
+import requests
+from botocore.exceptions import ClientError
+
+from minecraft_tools.config import DNSUpdaterConfig
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
-def get_task_public_ips():
-    """Get public IP addresses from ECS task using AWS APIs."""
+class CloudflareAPI:
+    """Cloudflare API client."""
+
+    def __init__(self, token: str) -> None:
+        self.token = token
+        self.base_url = "https://api.cloudflare.com/client/v4"
+        self.headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+    def get_dns_record(
+        self, zone_id: str, record_name: str
+    ) -> dict[str, Any] | None:
+        """Get DNS record by name."""
+        try:
+            response = requests.get(
+                f"{self.base_url}/zones/{zone_id}/dns_records",
+                headers=self.headers,
+                params={"name": record_name, "type": "A"},
+                timeout=30,
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            if data["success"] and data["result"]:
+                return data["result"][0]
+            return None
+        except requests.RequestException as e:
+            logger.error(f"Failed to get DNS record: {e}")
+            raise
+
+    def update_dns_record(
+        self, zone_id: str, record_id: str, record_name: str, ip_address: str
+    ) -> bool:
+        """Update DNS record with new IP address."""
+        try:
+            response = requests.put(
+                f"{self.base_url}/zones/{zone_id}/dns_records/{record_id}",
+                headers=self.headers,
+                json={
+                    "type": "A",
+                    "name": record_name,
+                    "content": ip_address,
+                    "ttl": 300,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            return data["success"]
+        except requests.RequestException as e:
+            logger.error(f"Failed to update DNS record: {e}")
+            raise
+
+
+def get_service_public_ips(
+    ecs_client: Any, ec2_client: Any, cluster: str, service: str
+) -> list[str]:
+    """Get public IP addresses for ECS service tasks."""
     try:
-        # Get task metadata to find task ARN
-        metadata_uri = os.getenv('ECS_CONTAINER_METADATA_URI_V4')
-        if not metadata_uri:
-            print("Error: ECS_CONTAINER_METADATA_URI_V4 not found")
-            return None, None
-            
-        response = requests.get(f"{metadata_uri}/task", timeout=5)
-        response.raise_for_status()
-        task_metadata = response.json()
-        
-        task_arn = task_metadata.get('TaskARN')
-        if not task_arn:
-            print("Error: Could not get task ARN from metadata")
-            return None, None
-        
-        # Extract cluster name and task ID from ARN
-        cluster_name = task_arn.split('/')[1]
-        task_id = task_arn.split('/')[-1]
-        
-        # Use ECS client to get task details
-        ecs = boto3.client('ecs')
-        response = ecs.describe_tasks(
-            cluster=cluster_name,
-            tasks=[task_id]
+        # Get running tasks
+        tasks_response = ecs_client.list_tasks(cluster=cluster, serviceName=service)
+        if not tasks_response["taskArns"]:
+            logger.info("No running tasks found")
+            return []
+
+        # Get task details
+        task_details = ecs_client.describe_tasks(
+            cluster=cluster, tasks=tasks_response["taskArns"]
         )
-        
-        if not response['tasks']:
-            print("Error: Task not found")
-            return None, None
-            
-        task = response['tasks'][0]
-        
-        # Get ENI ID from task attachments
-        eni_id = None
-        for attachment in task.get('attachments', []):
-            if attachment['type'] == 'ElasticNetworkInterface':
-                for detail in attachment['details']:
-                    if detail['name'] == 'networkInterfaceId':
-                        eni_id = detail['value']
-                        break
-        
-        if not eni_id:
-            print("Error: Could not find ENI ID")
-            return None, None
-        
-        # Get public IPs from ENI
-        ec2 = boto3.client('ec2')
-        response = ec2.describe_network_interfaces(
-            NetworkInterfaceIds=[eni_id]
-        )
-        
-        if not response['NetworkInterfaces']:
-            print("Error: ENI not found")
-            return None, None
-            
-        eni = response['NetworkInterfaces'][0]
-        
-        ipv4 = None
-        ipv6 = None
-        
-        # Get IPv4
-        if eni.get('Association', {}).get('PublicIp'):
-            ipv4 = eni['Association']['PublicIp']
-        
-        # Get IPv6
-        for ipv6_addr in eni.get('Ipv6Addresses', []):
-            ipv6 = ipv6_addr['Ipv6Address']
-            break
-            
-        return ipv4, ipv6
-        
+
+        ips = []
+        for task in task_details["tasks"]:
+            for attachment in task.get("attachments", []):
+                if attachment["type"] == "ElasticNetworkInterface":
+                    for detail in attachment["details"]:
+                        if detail["name"] == "networkInterfaceId":
+                            eni_id = detail["value"]
+                            try:
+                                eni_response = ec2_client.describe_network_interfaces(
+                                    NetworkInterfaceIds=[eni_id]
+                                )
+                                if eni_response["NetworkInterfaces"]:
+                                    public_ip = (
+                                        eni_response["NetworkInterfaces"][0]
+                                        .get("Association", {})
+                                        .get("PublicIp")
+                                    )
+                                    if public_ip:
+                                        ips.append(public_ip)
+                            except ClientError as e:
+                                logger.warning(
+                                    f"Failed to get IP for ENI {eni_id}: {e}"
+                                )
+
+        return ips
+    except ClientError as e:
+        logger.error(f"AWS error getting service IPs: {e}")
+        raise
     except Exception as e:
-        print(f"Error getting task public IPs: {e}")
-        return None, None
+        logger.error(f"Unexpected error getting service IPs: {e}")
+        raise
 
 
-def update_dns_record(zone_id, record_id, record_type, name, content, api_token):
-    """Update Cloudflare DNS record."""
-    url = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}"
-    headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "type": record_type,
-        "name": name,
-        "content": content,
-        "ttl": 120,
-        "proxied": False
-    }
-    
+def update_dns_if_needed(config: DNSUpdaterConfig) -> None:
+    """Update DNS record if IP address has changed."""
     try:
-        response = requests.put(url, json=data, headers=headers)
-        response.raise_for_status()
-        print(f"Updated {record_type} record: {name} -> {content}")
-    except requests.RequestException as e:
-        print(f"Error updating {record_type} record: {e}")
-        return False
-    return True
+        # Initialize clients
+        ecs_client = boto3.client("ecs")
+        ec2_client = boto3.client("ec2")
+        cloudflare = CloudflareAPI(config.cloudflare_token)
 
-
-def main():
-    # Get required environment variables
-    required_vars = [
-        "CLOUDFLARE_ZONE_ID",
-        "CLOUDFLARE_A_RECORD_ID", 
-        "CLOUDFLARE_AAAA_RECORD_ID",
-        "CLOUDFLARE_API_TOKEN",
-        "DNS_NAME"
-    ]
-    
-    for var in required_vars:
-        if not os.getenv(var):
-            print(f"Error: {var} environment variable not set")
-            sys.exit(1)
-    
-    # Get task IPs from AWS APIs
-    ipv4, ipv6 = get_task_public_ips()
-    
-    if not ipv4:
-        print("Error: Could not get IPv4 address")
-        sys.exit(1)
-    
-    # Update DNS records
-    success = True
-    success &= update_dns_record(
-        os.getenv("CLOUDFLARE_ZONE_ID"),
-        os.getenv("CLOUDFLARE_A_RECORD_ID"),
-        "A",
-        os.getenv("DNS_NAME"),
-        ipv4,
-        os.getenv("CLOUDFLARE_API_TOKEN")
-    )
-    
-    if ipv6:
-        success &= update_dns_record(
-            os.getenv("CLOUDFLARE_ZONE_ID"),
-            os.getenv("CLOUDFLARE_AAAA_RECORD_ID"),
-            "AAAA",
-            os.getenv("DNS_NAME"),
-            ipv6,
-            os.getenv("CLOUDFLARE_API_TOKEN")
+        # Get current service IPs
+        current_ips = get_service_public_ips(
+            ecs_client, ec2_client, config.ecs_cluster, config.ecs_service
         )
-    
-    if not success:
-        sys.exit(1)
+
+        if not current_ips:
+            logger.info("No public IPs found for service, skipping DNS update")
+            return
+
+        # Use first IP (assuming single task)
+        current_ip = current_ips[0]
+        logger.info(f"Current service IP: {current_ip}")
+
+        # Get current DNS record
+        dns_record = cloudflare.get_dns_record(config.zone_id, config.record_name)
+        if not dns_record:
+            logger.error(f"DNS record {config.record_name} not found")
+            return
+
+        current_dns_ip = dns_record["content"]
+        logger.info(f"Current DNS IP: {current_dns_ip}")
+
+        # Update if different
+        if current_ip != current_dns_ip:
+            logger.info(f"Updating DNS record from {current_dns_ip} to {current_ip}")
+            success = cloudflare.update_dns_record(
+                config.zone_id, dns_record["id"], config.record_name, current_ip
+            )
+            if success:
+                logger.info("DNS record updated successfully")
+            else:
+                logger.error("Failed to update DNS record")
+        else:
+            logger.info("DNS record is already up to date")
+
+    except Exception as e:
+        logger.error(f"Error updating DNS: {e}")
+        raise
+
+
+def main() -> None:
+    """Main entry point."""
+    try:
+        config = DNSUpdaterConfig.from_env()
+        logger.info(f"Starting DNS updater for {config.record_name}")
+
+        while True:
+            update_dns_if_needed(config)
+            logger.info("Sleeping for 60 seconds...")
+            time.sleep(60)
+
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        raise
+    except KeyboardInterrupt:
+        logger.info("DNS updater stopped by user")
+    except Exception as e:
+        logger.error(f"DNS updater failed: {e}")
+        raise
 
 
 if __name__ == "__main__":
