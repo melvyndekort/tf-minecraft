@@ -1,12 +1,30 @@
-.PHONY := clean_secrets decrypt encrypt exec test
+.PHONY := clean_secrets decrypt encrypt exec test lint format type-check coverage dev-all
 
-ifndef AWS_SESSION_TOKEN
-  $(error Not logged in, please run 'awsume')
-endif
-
+# Development commands (using uv)
 test:
-	uv sync --extra dev
-	uv run pytest
+	uv run --extra dev pytest tests/ -v
+
+coverage:
+	uv run --extra dev pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
+
+lint:
+	uv run --extra dev ruff check .
+
+format:
+	uv run --extra dev ruff format .
+
+type-check:
+	uv run --extra dev mypy src tests
+
+dev-all: format lint type-check test
+
+# AWS-related commands require session
+decrypt encrypt exec: check-aws
+
+check-aws:
+ifndef AWS_SESSION_TOKEN
+	$(error Not logged in, please run 'awsume')
+endif
 
 clean_secrets:
 	@rm -f terraform/secrets.yaml
