@@ -21,6 +21,10 @@ on:
       - '.github/workflows/mc-idle-watcher.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     uses: ./.github/workflows/build-component.yml
