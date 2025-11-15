@@ -81,7 +81,8 @@ class TestDiscordBot:
             mock_ecs.update_service.assert_called_once_with(
                 cluster="test-cluster",
                 service="test-service",
-                desiredCount=1
+                desiredCount=1,
+                forceNewDeployment=True
             )
 
     @pytest.mark.asyncio
