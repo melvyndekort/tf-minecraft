@@ -99,8 +99,9 @@ class TestIdleWatcherConfig:
         env_vars = {
             "ECS_CLUSTER": "test_cluster",
             "ECS_SERVICE": "test_service",
-            "MINECRAFT_HOST": "mc.example.com",
-            "MINECRAFT_PORT": "25566",
+            "RCON_HOST": "mc.example.com",
+            "RCON_PORT": "25576",
+            "RCON_PASSWORD": "testpass",
             "CHECK_INTERVAL": "120",
             "IDLE_THRESHOLD": "300",
         }
@@ -109,8 +110,9 @@ class TestIdleWatcherConfig:
             config = IdleWatcherConfig.from_env()
 
         assert config.ecs_cluster == "test_cluster"
-        assert config.minecraft_host == "mc.example.com"
-        assert config.minecraft_port == 25566
+        assert config.rcon_host == "mc.example.com"
+        assert config.rcon_port == 25576
+        assert config.rcon_password == "testpass"
         assert config.check_interval == 120
         assert config.idle_threshold == 300
 
@@ -119,20 +121,21 @@ class TestIdleWatcherConfig:
         env_vars = {
             "ECS_CLUSTER": "test_cluster",
             "ECS_SERVICE": "test_service",
-            "MINECRAFT_HOST": "mc.example.com",
+            "RCON_HOST": "mc.example.com",
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
             config = IdleWatcherConfig.from_env()
 
-        assert config.minecraft_port == 25565
+        assert config.rcon_port == 25575
+        assert config.rcon_password == ""
         assert config.check_interval == 300
         assert config.idle_threshold == 600
 
     def test_missing_host_raises_error(self):
-        """Test error when Minecraft host is missing."""
+        """Test error when RCON host is missing."""
         env_vars = {"ECS_CLUSTER": "test", "ECS_SERVICE": "test"}
         with patch.dict(os.environ, env_vars, clear=True), pytest.raises(
-            ValueError, match="MINECRAFT_HOST environment variable is required"
+            ValueError, match="RCON_HOST environment variable is required"
         ):
             IdleWatcherConfig.from_env()

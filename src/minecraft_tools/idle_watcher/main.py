@@ -94,7 +94,7 @@ def monitor_server(config: IdleWatcherConfig) -> None:
 
             # Get player count
             player_count = get_player_count(
-                config.minecraft_host, config.minecraft_port
+                config.rcon_host, config.rcon_port, config.rcon_password
             )
 
             if player_count == -1:
@@ -135,7 +135,7 @@ def main() -> None:
     try:
         config = IdleWatcherConfig.from_env()
         logger.info(
-            f"Starting idle watcher for {config.minecraft_host}:{config.minecraft_port} "
+            f"Starting idle watcher for {config.rcon_host}:{config.rcon_port} "
             f"(check every {config.check_interval}s, idle threshold {config.idle_threshold}s)"
         )
 
