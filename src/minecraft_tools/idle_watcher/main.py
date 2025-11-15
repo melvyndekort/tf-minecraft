@@ -120,7 +120,7 @@ def monitor_server(config: IdleWatcherConfig) -> None:
                     server_available = True
                     send_discord_message(
                         config.discord_webhook, 
-                        "🟢 Minecraft server is now online and ready for players!"
+                        f"🟢 Minecraft server is now online and ready for players!\nConnect to: **{config.dns_name}**"
                     )
 
                 if player_count == 0:
