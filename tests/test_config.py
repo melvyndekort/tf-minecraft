@@ -114,6 +114,7 @@ class TestIdleWatcherConfig:
         assert config.rcon_port == 25576
         assert config.rcon_password == "testpass"
         assert config.discord_webhook == ""
+        assert config.dns_name == ""
         assert config.check_interval == 120
         assert config.idle_threshold == 300
 
@@ -131,6 +132,7 @@ class TestIdleWatcherConfig:
         assert config.rcon_port == 25575
         assert config.rcon_password == ""
         assert config.discord_webhook == ""
+        assert config.dns_name == ""
         assert config.check_interval == 300
         assert config.idle_threshold == 600
 
