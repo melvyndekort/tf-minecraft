@@ -11,6 +11,11 @@ resource "random_string" "random_password" {
 
 locals {
   minecraft_service_name = "minecraft-service"
+  plugins = [
+    "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot",
+    "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot",
+    "https://dev.bukkit.org/projects/treeassist/files/latest"
+  ]
 }
 
 resource "aws_ecs_task_definition" "minecraft" {
@@ -76,7 +81,8 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "ENABLE_RCON", value = "true" },
         { name = "RCON_PORT", value = "25575" },
         { name = "RCON_PASSWORD", value = random_string.random_password.result },
-        { name = "JVM_OPTS", value = "-Djava.net.preferIPv4Stack=true" }
+        { name = "JVM_OPTS", value = "-Djava.net.preferIPv4Stack=true" },
+        { name = "PLUGINS", value = join(",", local.plugins) }
       ]
       logConfiguration = {
         logDriver = "awslogs"
