@@ -13,8 +13,7 @@ locals {
   minecraft_service_name = "minecraft-service"
   plugins = [
     "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot",
-    "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot",
-    "https://dev.bukkit.org/projects/treeassist/files/latest"
+    "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
   ]
 }
 
@@ -128,11 +127,14 @@ resource "aws_ecs_task_definition" "minecraft" {
         { name = "CLOUDFLARE_ZONE_ID", value = data.cloudflare_zone.zone.zone_id },
         { name = "CLOUDFLARE_A_RECORD_ID", value = cloudflare_dns_record.minecraft_a.id },
         { name = "CLOUDFLARE_AAAA_RECORD_ID", value = cloudflare_dns_record.minecraft_aaaa.id },
+        { name = "DNS_RECORD_NAME", value = local.fqdn },
+        { name = "ECS_CLUSTER", value = aws_ecs_cluster.minecraft.name },
+        { name = "ECS_SERVICE", value = local.minecraft_service_name },
         { name = "DNS_NAME", value = local.fqdn }
       ]
       secrets = [
         {
-          name      = "CLOUDFLARE_API_TOKEN"
+          name      = "CLOUDFLARE_TOKEN"
           valueFrom = aws_ssm_parameter.cloudflare_api_token.arn
         }
       ]
@@ -166,6 +168,11 @@ resource "aws_ecs_service" "minecraft" {
     subnets          = [data.aws_subnet.public.id]
     security_groups  = [aws_security_group.minecraft.id]
     assign_public_ip = true
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = false
   }
 
   depends_on = [aws_efs_mount_target.minecraft]
