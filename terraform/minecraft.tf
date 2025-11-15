@@ -13,7 +13,8 @@ locals {
   minecraft_service_name = "minecraft-service"
   plugins = [
     "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot",
-    "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
+    "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot",
+    "https://mediafilez.forgecdn.net/files/6326/161/TreeCapitator7.1.jar"
   ]
 }
 
