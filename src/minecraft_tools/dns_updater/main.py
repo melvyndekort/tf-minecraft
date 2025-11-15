@@ -1,6 +1,7 @@
 """DNS updater for Minecraft server IP addresses."""
 
 import logging
+import sys
 import time
 from typing import Any
 
@@ -178,19 +179,19 @@ def main() -> None:
         config = DNSUpdaterConfig.from_env()
         logger.info(f"Starting DNS updater for {config.record_name}")
 
-        while True:
-            update_dns_if_needed(config)
-            logger.info("Sleeping for 60 seconds...")
-            time.sleep(60)
+        update_dns_if_needed(config)
+        logger.info("DNS update complete, exiting successfully")
+        sys.exit(0)
 
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
-        raise
+        sys.exit(1)
     except KeyboardInterrupt:
         logger.info("DNS updater stopped by user")
+        sys.exit(0)
     except Exception as e:
         logger.error(f"DNS updater failed: {e}")
-        raise
+        sys.exit(1)
 
 
 if __name__ == "__main__":
