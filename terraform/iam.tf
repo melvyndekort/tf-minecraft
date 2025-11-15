@@ -49,6 +49,7 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
     effect = "Allow"
     actions = [
       "ecs:DescribeTasks",
+      "ecs:ListTasks",
       "ec2:DescribeNetworkInterfaces"
     ]
     resources = ["*"]
@@ -58,7 +59,8 @@ data "aws_iam_policy_document" "ecs_ssm_access" {
   statement {
     effect = "Allow"
     actions = [
-      "ecs:UpdateService"
+      "ecs:UpdateService",
+      "ecs:DescribeServices"
     ]
     resources = [aws_ecs_service.minecraft.arn]
   }
