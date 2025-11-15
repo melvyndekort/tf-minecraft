@@ -85,6 +85,7 @@ class IdleWatcherConfig:
     rcon_host: str
     rcon_port: int = 25575
     rcon_password: str = ""
+    discord_webhook: str = ""
     check_interval: int = 300  # 5 minutes
     idle_threshold: int = 600  # 10 minutes
 
@@ -95,6 +96,7 @@ class IdleWatcherConfig:
         service = os.getenv("ECS_SERVICE")
         rcon_host = os.getenv("RCON_HOST")
         rcon_password = os.getenv("RCON_PASSWORD", "")
+        discord_webhook = os.getenv("DISCORD_WEBHOOK", "")
 
         if not cluster:
             raise ValueError("ECS_CLUSTER environment variable is required")
@@ -109,6 +111,7 @@ class IdleWatcherConfig:
             rcon_host=rcon_host,
             rcon_port=int(os.getenv("RCON_PORT", "25575")),
             rcon_password=rcon_password,
+            discord_webhook=discord_webhook,
             check_interval=int(os.getenv("CHECK_INTERVAL", "300")),
             idle_threshold=int(os.getenv("IDLE_THRESHOLD", "600")),
         )

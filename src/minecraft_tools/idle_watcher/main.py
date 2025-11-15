@@ -5,6 +5,7 @@ import time
 from typing import Any
 
 import boto3
+import requests
 from botocore.exceptions import ClientError
 from mcrcon import MCRcon
 
@@ -32,6 +33,17 @@ def get_player_count(host: str, port: int, password: str = "") -> int:
     except Exception as e:
         logger.warning(f"Failed to get player count: {e}")
         return -1  # Return -1 to indicate error
+
+
+def send_discord_message(webhook_url: str, message: str) -> None:
+    """Send message to Discord webhook."""
+    if not webhook_url:
+        return
+    try:
+        requests.post(webhook_url, json={"content": message}, timeout=10)
+        logger.info("Discord notification sent")
+    except Exception as e:
+        logger.warning(f"Failed to send Discord message: {e}")
 
 
 def get_service_status(ecs_client: Any, cluster: str, service: str) -> dict[str, int]:
@@ -78,6 +90,7 @@ def monitor_server(config: IdleWatcherConfig) -> None:
     """Monitor server and shut down if idle."""
     ecs_client = boto3.client("ecs")
     idle_start_time = None
+    server_available = False
 
     while True:
         try:
@@ -100,32 +113,51 @@ def monitor_server(config: IdleWatcherConfig) -> None:
             if player_count == -1:
                 logger.warning("Could not get player count, assuming server is busy")
                 idle_start_time = None
-            elif player_count == 0:
-                current_time = time.time()
-
-                if idle_start_time is None:
-                    idle_start_time = current_time
-                    logger.info("Server is idle, starting idle timer")
-                else:
-                    idle_duration = current_time - idle_start_time
-                    logger.info(f"Server idle for {idle_duration:.0f} seconds")
-
-                    if idle_duration >= config.idle_threshold:
-                        logger.info("Server has been idle too long, shutting down")
-                        if scale_service(
-                            ecs_client, config.ecs_cluster, config.ecs_service, 0
-                        ):
-                            logger.info("Server shutdown initiated")
-                            idle_start_time = None
-                        else:
-                            logger.error("Failed to shut down server")
+                server_available = False
             else:
-                logger.info(f"Server has {player_count} players, resetting idle timer")
-                idle_start_time = None
+                # If this is the first successful connection, notify Discord
+                if not server_available:
+                    server_available = True
+                    send_discord_message(
+                        config.discord_webhook, 
+                        "🟢 Minecraft server is now online and ready for players!"
+                    )
+
+                if player_count == 0:
+                    current_time = time.time()
+
+                    if idle_start_time is None:
+                        idle_start_time = current_time
+                        logger.info("Server is idle, starting idle timer")
+                    else:
+                        idle_duration = current_time - idle_start_time
+                        logger.info(f"Server idle for {idle_duration:.0f} seconds")
+
+                        if idle_duration >= config.idle_threshold:
+                            logger.info("Server has been idle too long, shutting down")
+                            send_discord_message(
+                                config.discord_webhook,
+                                "🔴 Minecraft server shutting down due to inactivity"
+                            )
+                            if scale_service(
+                                ecs_client, config.ecs_cluster, config.ecs_service, 0
+                            ):
+                                logger.info("Server shutdown initiated")
+                                server_available = False
+                                return
+                            else:
+                                logger.error("Failed to shut down server")
+                else:
+                    # Players online, reset idle timer
+                    if idle_start_time is not None:
+                        logger.info(f"Players online ({player_count}), resetting idle timer")
+                        idle_start_time = None
 
         except Exception as e:
             logger.error(f"Error in monitoring loop: {e}")
             idle_start_time = None  # Reset on error to be safe
+
+        time.sleep(config.check_interval)
 
         time.sleep(config.check_interval)
 
