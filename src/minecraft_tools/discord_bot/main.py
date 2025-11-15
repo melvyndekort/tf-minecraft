@@ -130,6 +130,7 @@ async def update_service(
             cluster=cluster,
             service=service,
             desiredCount=desired_count,
+            forceNewDeployment=True,
         )
         logger.info(f"Successfully updated service to desired count {desired_count}")
         await interaction.response.send_message(

@@ -1,4 +1,4 @@
-paper_version   = "1.21.8"
+paper_version   = "LATEST"
 dns_zone        = "dekort.dev"
 dns_record      = "mc"
 task_cpu        = 2048
