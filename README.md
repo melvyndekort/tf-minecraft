@@ -1,4 +1,4 @@
-# tf-minecraft
+# minecraft-server
 
 A scalable Minecraft server infrastructure on AWS ECS with Discord bot integration for remote server management.
 
@@ -63,7 +63,7 @@ make encrypt
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd tf-minecraft
+cd minecraft-server
 
 # Configure variables
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
@@ -109,7 +109,7 @@ Once the bot is running, use these slash commands in Discord:
 ## 📁 Project Structure
 
 ```
-tf-minecraft/
+minecraft-server/
 ├── bootstrap/           # One-time GitHub Actions OIDC setup
 │   ├── github-oidc-role.tf
 │   └── providers.tf
