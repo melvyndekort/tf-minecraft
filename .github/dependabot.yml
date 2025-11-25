@@ -2,23 +2,33 @@ version: 2
 
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: "pip"
+  - package-ecosystem: "docker"
+    directory: "/docker"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    rebase-strategy: "auto"
     assignees:
       - "melvyndekort"
     reviewers:
       - "melvyndekort"
-  - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "daily"
+    rebase-strategy: "auto"
     assignees:
       - "melvyndekort"
     reviewers:
       - "melvyndekort"
-  - package-ecosystem: "docker"
-    directory: "/docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    rebase-strategy: "auto"
+    assignees:
+      - "melvyndekort"
+    reviewers:
+      - "melvyndekort"
+    directory: "/"
     schedule:
       interval: "daily"
     assignees:
@@ -29,6 +39,7 @@ updates:
     directory: "/terraform"
     schedule:
       interval: "daily"
+    rebase-strategy: "auto"
     assignees:
       - "melvyndekort"
     reviewers:
